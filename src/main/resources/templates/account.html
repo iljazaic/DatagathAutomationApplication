@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DATAGATH: Signup</title>
+</head>
+
+
+<link rel="stylesheet" href="styles/style.css">
+
+<body>
+
+
+
+    <div class="mainDiv">
+        <button>
+            <a href="/">
+                Home
+            </a>
+        </button>
+        <div class="row">
+            <div class="quickaction">
+                <h3>Quick Action List</h3>
+
+                <ul class="actionlist">
+                    <li>
+                        <a href="manage/dashboard">
+                            Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/tables/create">
+                            New Collection Table
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/schedules/create">
+                            New Scheduled Event
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/visualisations">
+                            New Data Visualisation
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/analyse/report">
+                            New Report on a Collection Table
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+
+            <div class="profile">
+                <h3>Your Profile</h3>
+
+                <ul class="personal-info">
+                    <li>
+                        Name: <span th:text="${user.name}"></span><button type="button"><a
+                                href="/changename">Change</a></button>
+                    </li>
+                    <li>
+                        Email: <span th:text="${user.email}"></span><button type="button"><a
+                                href="/changeemail">Change</a></button>
+                    </li>
+                    <li>
+                        <button type="button"><a href="/changepassword">Change Password</a></button>
+                    </li>
+                    <li>
+                        <button type="button" id="logout"><a href="/sign_out">Log out</a></button>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="contacts">
+            Contacts:<br>
+            +45 91818710<br>
+            <a href="mailto:datagath@outlook.com">datagath@outlook.com</a><br>
+            No Physical Location Availiable<br>
+        </div>
+
+        <div class="info">
+            Informational:<br>
+            <a href="https://www.transparenttextures.com/graphy-dark.html">Background texture by We Are Pixel 8</a><br>
+            <a href="/privacyPolicy">Privacy Policy</a><br>
+            <a href="/about">About Us</a><br>
+        </div>
+    </div>
+
+</body>
+
+</html>

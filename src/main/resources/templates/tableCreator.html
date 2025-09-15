@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Collection Table</title>
+    <script src="/javascript/utill.js"></script>
+
+</head>
+
+<link rel="stylesheet" href="/styles/style.css">
+</link>
+<link rel="stylesheet" href="../static/styles/style.css">
+</link>
+
+<body>
+
+
+    <div class="mainDiv">
+        <h2>
+            Create new DATAGATH table
+        </h2>
+        <button>
+            <a href="/">
+                Home
+            </a>
+        </button>
+        <form id="creationForm" action="/tables/create" method="post">
+
+            <label id="msg">
+
+            </label>
+            <label for="dataType">
+                Enter Table Name
+            </label>
+            <input type="text" name="tableName"><br><br>
+            <div class="columnSection" id="colSection">
+                <div class="columnSetup">
+                    <label for="dataType">
+                        Select new column datatype:
+                    </label>
+
+                    <select id="typeSelection" name="columns[0].type">
+                        <option value="INT">Whole Number</option>
+                        <option value="FLOAT">Decimal Numbers</option>
+                        <option value="TEXT">Text</option>
+                        <option value="DATETIME">Date/Time</option>
+                    </select>
+                    <br>
+
+                    <label for="colName">
+                        Column Name
+                    </label>
+                    <input type="text" name="columns[0].name" value="col1">
+                    <input type="button" value="Remove" onclick="removeColumn(this)"></input>
+                </div>
+
+            </div>
+
+            <input type="button" value="Add Column" onclick="addNewColSetup()">
+
+            </input>
+
+            </br>
+            </br>
+            <label for="isPrivate">
+                Private table:
+            </label>
+            <input type="checkbox" name="isPrivate" value="on">
+            </br>
+            </br>
+            <input type="submit" value="CREATE"></input>
+        </form>
+    </div>
+
+    <div class="footer">
+        <div class="contacts">
+            Contacts:<br>
+            +45 91818710<br>
+            <a href="mailto:datagath@outlook.com">datagath@outlook.com</a><br>
+            No Physical Location Availiable<br>
+        </div>
+
+        <div class="info">
+            Informational:<br>
+            <a href="https://www.transparenttextures.com/graphy-dark.html">Background texture by We Are Pixel 8</a><br>
+            <a href="/privacyPolicy">Privacy Policy</a><br>
+            <a href="/about">About Us</a><br>
+        </div>
+    </div>
+</body>
+<script>
+
+    let n = 0;
+    function addNewColSetup() {
+        n++;
+        const form = document.getElementById("colSection");
+
+        // wrapper div
+        const colDiv = document.createElement("div");
+        colDiv.className = "columnSetup";
+
+        // datatype label
+        const typeLabel = document.createElement("label");
+        typeLabel.textContent = "Select new column datatype:";
+        colDiv.appendChild(typeLabel);
+
+        // datatype select
+        const select = document.createElement("select");
+        select.name = `columns[${n}].type`;
+        ["INT", "FLOAT", "TEXT", "DATETIME"].forEach(val => {
+            const opt = document.createElement("option");
+            opt.value = val;
+            opt.textContent = (
+                val === "INT" ? "Whole Number" :
+                    val === "FLOAT" ? "Decimal Numbers" :
+                        val === "TEXT" ? "Text" :
+                            "Date/Time"
+            );
+            select.appendChild(opt);
+        });
+        colDiv.appendChild(select);
+        colDiv.appendChild(document.createElement("br"));
+
+        // column name label
+        const nameLabel = document.createElement("label");
+        nameLabel.textContent = "Column Name";
+        colDiv.appendChild(nameLabel);
+
+        // input
+        const input = document.createElement("input");
+        input.type = "text";
+        input.name = `columns[${n}].name`;
+        input.value = `col${n}`;
+        colDiv.appendChild(input);
+
+        // input
+        const rem = document.createElement("input");
+        rem.type = "button";
+        rem.value = "Remove"
+        rem.onclick = function () {
+            removeColumn(this);
+        };
+        colDiv.appendChild(rem);
+        // spacing
+        colDiv.appendChild(document.createElement("br"));
+        colDiv.appendChild(document.createElement("br"));
+
+        // finally append to section
+        form.appendChild(colDiv);
+    }
+    function removeColumn(button) {
+        const form = document.getElementById("colSection");
+
+        let element = button.parentElement;
+        if (element) {
+            element.remove();
+        }
+    }
+
+    const form = document.getElementById('creationForm');
+    const msg = document.getElementById('msg')
+
+    function nestFormData(formData) {
+        const obj = { columns: [] };
+
+        for (let [key, value] of formData.entries()) {
+            if (key.startsWith("columns[")) {
+                const [, index, prop] = key.match(/columns\[(\d+)\]\.(.+)/);
+                obj.columns[index] = obj.columns[index] || {};
+                obj.columns[index][prop] = value;
+            } else {
+                obj[key] = value;
+            }
+        }
+
+        return obj;
+    }
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        //let data = Object.fromEntries(formData.entries());
+        let data = nestFormData(formData);
+        try {
+            const response = await fetch("/tables/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                window.location = '/manage/dashboard';
+            } else {
+                const errorMessage = await response.text();
+                msg.textContent = errorMessage;
+                msg.style.color = "red";
+            }
+        } catch (err) {
+            msg.textContent = "Network error, try again later.";
+            msg.style.color = "red";
+        }
+    });
+
+</script>
+
+</html>

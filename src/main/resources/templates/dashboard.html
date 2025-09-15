@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/styles/style.css" />
+    <script src="/javascript/utill.js"></script>
+    <link rel="icon" href="/icons/torus_icon.png">
+
+    <title>DASHBOARD</title>
+</head>
+
+<body>
+
+    <div id="deleteConfirm" class="card"
+        style="visibility:hidden;position:absolute; width: 20%; height: 20%; left: 40%; top:40%; z-index: 10000; text-align: center; font-weight: bold; ">
+        Are you sure you want to delete the table?
+        <span style="color: red;">The data will NOT be recoverable!</span>
+        <button id="yesButton">
+            Yes.
+        </button>
+        <button onclick="closePopUp()">
+            No.
+        </button>
+    </div>
+
+
+    <div class="mainDiv medium">
+
+
+        <div class="item-row">
+            <div class="logo" style="background-image: url('/icons/torus_icon_2.png'); background-size: 100%; height: 100%; max-height: 100%;"></div>
+            <h2 style="text-decoration: none; font-size: large; text-align: center;">
+                DATAGATH Dashboard
+            </h2>
+            <div class="profile-button">
+                <button type="button"> <a href="/account">
+                        Profile
+                    </a></button>
+            </div>
+        </div>
+        <div class="dashboard-section" id="tableSection">
+            <h1>Collection Tables</h1>
+            <div class="cards" id="table-cards">
+
+            </div>
+        </div>
+        <div class="dashboard-section" id="scheduleSection">
+            <h1>Scheduled events</h1>
+
+            <div class="cards" id="schedule-cards">
+
+            </div>
+        </div>
+    </div>
+    </div>
+    </div>
+    <div class="footer">
+        <div class="contacts">
+            Contacts:<br>
+            +45 91818710<br>
+            <a href="mailto:datagath@outlook.com">datagath@outlook.com</a><br>
+            No Physical Location Availiable<br>
+        </div>
+
+        <div class="info">
+            Informational:<br>
+            <a href="https://www.transparenttextures.com/graphy-dark.html">Background texture by We Are Pixel 8</a><br>
+            <a href="/privacyPolicy">Privacy Policy</a><br>
+            <a href="/about">About Us</a><br>
+        </div>
+    </div>
+</body>
+<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+<script>
+
+
+
+
+    async function loadEchatsActivity(element, activityArray) {
+        const echart = echarts.init(element);
+        const option = {
+            backgroundColor: '#c0c0c0', // Windows 98 gray
+            grid: { left: 0, right: 0, top: 10, bottom: 10 },
+
+
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: '#ffffe1', // classic tooltip yellow
+                borderColor: '#000000',
+                borderWidth: 1,
+                textStyle: {
+                    color: '#000000',
+                    fontFamily: 'Tahoma, Verdana, sans-serif',
+                    fontSize: 12
+                },
+                axisPointer: {
+                    type: 'line',
+                    lineStyle: {
+                        color: '#000080',
+                        width: 1,
+                        type: 'dashed'
+                    }
+                }
+            },
+            xAxis: {
+                show: false,
+
+                type: 'category',
+                data: activityArray.map((_, i) => i),
+                axisLine: { lineStyle: { color: '#000000' } },
+                axisLabel: {
+                    color: '#000000',
+                    fontFamily: 'Tahoma, Verdana, sans-serif',
+                    fontSize: 12
+                },
+                splitLine: {
+                    show: false,
+                    lineStyle: { color: '#dcdcdc', type: 'solid' }
+                }
+            },
+            yAxis: {
+                type: 'value',
+                show: true,
+                axisLine: { lineStyle: { color: '#000000' } },
+                axisLabel: {
+                    color: '#000000',
+                    fontFamily: 'Tahoma, Verdana, sans-serif',
+                    fontSize: 12
+                },
+                splitLine: {
+                    lineStyle: { color: '#dcdcdc', type: 'solid' }
+                }
+            },
+            series: [{
+                type: 'line',
+                data: activityArray,
+                smooth: false, // jagged lines = retro
+                lineStyle: {
+                    width: 2,
+                    color: '#0000ff' // Windows blue
+                },
+                symbol: 'rect', // chunky square points
+                symbolSize: 6,
+                itemStyle: {
+                    color: '#ff0000', // bright red points
+                    borderColor: '#000000',
+                    borderWidth: 1
+                },
+                areaStyle: {
+                    color: '#add8e6' // light blue fill (Excel 97 style)
+                }
+            }]
+        };
+
+        await echart.setOption(option)
+    }
+
+
+
+    async function createTableCard(tableName) {
+
+        //let lastActivity = await fetch("/tables/activity/" + tableName);
+
+
+        let columns = await fetchTableSummary(tableName);
+        let colString = '';
+        for (const [name, column] of Object.entries(columns)) {
+            let t;
+            if (column.hasOwnProperty('average')) {
+                t = 'Number';
+            } else if (column.hasOwnProperty('top5mostusedwords')) {
+                t = 'Text';
+            }
+            else {
+                t = 'Date'
+            }
+            colString += `<p class="table-p">
+                                <span>${name}: ${t}</span>
+                        </p>`;
+        }
+
+
+
+        var insertion = `
+                <div class="card dashboard-card" id="${tableName}">
+                    <div class="basic-table-info">
+                        <h3 class="dashboard-title">
+                            ${tableName}
+                        </h3>
+                        <div class="dashboard-list">
+                        ${colString}
+                        </div>
+                    </div>
+                    <div id="miniChart">
+                    </div>
+                    <div class="interaction">
+                        <button class="download-button-dashboard">
+                            <a href="/download/${tableName}">
+                                <img src="/icons/csv.png">
+
+                                </img>
+                            </a>
+                        </button>
+                        <button class="download-button-dashboard">
+                            <a href="/analyse/${tableName}">
+                                <img src="/icons/examine.png">
+                                </img>
+                            </a>
+                        </button>
+                        <button id="logout" onclick="initDelete('${tableName}')" class="download-button-dashboard">
+                            X
+                        </button>
+                    </div>
+                `
+
+        let activity = await fetch("/tables/activity", {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                timeFrame: "day",
+                tableName: tableName
+            })
+        });
+        activity = await activity.text();
+        activity = activity.split(',').map(function (v) {
+            return parseInt(v);
+        });
+
+        document.getElementById('table-cards').insertAdjacentHTML("beforeend", insertion);
+
+        let chart = document
+            .getElementById('table-cards')
+            .querySelector("#" + tableName)
+            .querySelector("#miniChart");
+
+        await loadEchatsActivity(chart, activity);
+
+
+
+        console.log(activity)
+
+
+        //insert echarts
+    }
+
+
+    async function createScheduleCard(scheduleName) {
+        let columns = await fetchEventContext(scheduleName);
+        let colString = '';
+        for (const [context, value] of Object.entries(columns)) {
+            colString += `<p class="table-p">
+                                <span>${context}: ${value}</span>
+                        </p>`;
+        }
+
+        var insertion = `<div class="cards">
+                    <div class="card dashboard-card">
+                        <div class="basic-table-info" style="max-width: 100%; width: 100%;">
+                            <h3 class="dashboard-title">
+                                Event_0
+                            </h3>
+                            <div class="dashboard-list" style="max-width: 500px; width: 100%;">
+                            ${colString}
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+`
+        document.getElementById('scheduleSection').innerHTML += insertion;
+
+    }
+
+    async function loadTablesDashboard(params) {
+        let datasets = await fetch("/tables/usertables", {
+            method: "GET",
+            credentials: "include"
+        });
+        datasets = await datasets.text();
+
+        const elements = datasets.split(',');
+
+        for (const element of elements) {
+            if ((element.length) > 0) {
+
+                await createTableCard(element);
+            }
+        }
+
+        let insertion = `
+        <div class="card dashboard-card newcard">
+                        <button class="newTableButton">
+                            <a href="/tables/create">
+                                +
+                            </a>
+                        </button>
+                    </div>`;
+        let wrapper = document.createElement("div");
+        wrapper.innerHTML = insertion;
+        document.getElementById('table-cards').appendChild(wrapper.firstElementChild);
+
+        //document.getElementById('table-cards').appendChild += 
+
+
+    }
+
+    async function loadSchedulesDashboard(params) {
+        let schedules = await fetch("/schedules/userschedules", {
+            method: "GET",
+            credentials: "include"
+        });
+        schedules = await schedules.text();
+        await schedules.split(',').forEach(async element => {
+            if ((element.length) > 0) {
+                await createScheduleCard(element);
+            }
+        });
+        document.getElementById('schedule-cards').innerHTML += `
+        <div class="card dashboard-card newcard">
+                        <button class="newTableButton">
+                            <a href="/schedules/create">
+                                +
+                            </a>
+                        </button>
+                    </div>`;
+
+    }
+
+
+
+
+    //const chart = echarts.init(document.getElementById('miniChart'));
+
+
+
+    //chart.setOption(option)
+    function initDelete(tableName) {
+        document.getElementById("deleteConfirm").style.visibility = "visible";
+        document.getElementById("yesButton").onclick = async function () {
+            console.log("init deletion of " + tableName)
+            let response = await fetch("/tables/delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    tableName: tableName
+                })
+            });
+            //response = await response.text();
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                closePopUp();
+                let text = await response.text();
+                alert(text);
+            }
+        }
+    }
+
+    function closePopUp() {
+        document.getElementById("deleteConfirm").style.visibility = "hidden";
+
+    }
+
+
+    loadTablesDashboard();
+    loadSchedulesDashboard();
+</script>
+
+</html>

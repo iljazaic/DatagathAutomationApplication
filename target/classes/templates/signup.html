@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DATAGATH: Signup</title>
+</head>
+
+
+<link rel="stylesheet" href="styles/style.css">
+
+<body>
+
+    <div class="mainDiv">
+        <div class="signup-form">
+            <h1>
+                New DATAGATH account
+            </h1>
+            <button>
+                <a href="/">
+                    Home
+                </a>
+            </button>
+            <button>
+                <a href="/login">
+                    Log In
+                </a>
+            </button>
+            <form id="form">
+                <label id="msg"></label>
+                <label>Enter a username</label>
+                <input type="text" name="name"></input>
+                <label>Enter your email</label>
+                <input type="email" name="email"></input>
+                <label>Enter a password</label>
+                <input type="password" name="password"></input>
+                </br>
+                </br>
+                <input type="submit" value="Sign Up"></input>
+            </form>
+
+
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="contacts">
+            Contacts:<br>
+            +45 91818710<br>
+            <a href="mailto:datagath@outlook.com">datagath@outlook.com</a><br>
+            No Physical Location Availiable<br>
+        </div>
+
+        <div class="info">
+            Informational:<br>
+            <a href="https://www.transparenttextures.com/graphy-dark.html">Background texture by We Are Pixel 8</a><br>
+            <a href="/privacyPolicy">Privacy Policy</a><br>
+            <a href="/about">About Us</a><br>
+        </div>
+    </div>
+</body>
+
+<script>
+    const form = document.getElementById('form');
+    const msg = document.getElementById('msg')
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        console.log(data);
+        try {
+            const response = await fetch("/signup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                window.location = '/account';
+            } else {
+                const errorMessage = await response.text();
+                msg.textContent = errorMessage;
+                msg.style.color = "red";
+            }
+        } catch (err) {
+            msg.textContent = "Network error, try again later.";
+            msg.style.color = "red";
+        }
+    });
+</script>
+
+</html>

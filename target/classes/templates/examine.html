@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/styles/style.css">
+    <script src="/javascript/utill.js"></script>
+    <link rel="icon" href="/icons/torus_icon_2.png">
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+
+    <title>Examine Table</title>
+</head>
+
+<body>
+
+
+
+    <div class="mainDiv wider">
+
+        <div class="item-row">
+            <div class="logo"
+                style="background-image: url('/icons/torus_icon_2.png'); background-size: 100%; height: 100%; max-height: 100%;">
+            </div>
+            <h2 style="text-decoration: none; font-size: large; text-align: center;">
+                Details for <span style="font-style: italic;" th:text="${table.name}"></span>
+            </h2>
+            <div class="profile-button">
+                <button type="button"> <a href="/account">
+                        Profile
+                    </a></button>
+            </div>
+        </div>
+        <button>
+            <a href="/">
+                Home
+            </a>
+        </button>
+        <button>
+            <a href="/manage/dashboard">
+                Back
+            </a>
+        </button>
+        <div class="split-maindiv" style="height: fit-content;">
+
+            <div class="editor-field" style="background-color: transparent; max-height: fit-content;">
+                <h2 th:text="${table.name}">
+
+                </h2>
+
+                <div style="width: fit-content" class="personal-info">
+                    <h4 style="color: rgb(1, 114, 67);">
+                        Table ID: <span th:text="${table.id}"></span>
+                    </h4>
+                    </br>
+                    <span> Column Setup:
+                        <div class="dashboard-list" id="column-list">
+
+                        </div>
+                    </span>
+                </div>
+                <div style="height: 200px; width: 500px;" id="miniChart">
+
+                </div>
+
+                <select id="timeframeSelector" onchange="drawEchartsDiagram(this)">
+                    <option>
+                        day
+                    </option>
+                    <option>
+                        hour
+                    </option>
+                    <option>
+                        week
+                    </option>
+                    <option>
+                        month
+                    </option>
+                </select>
+            </div>
+
+            <div class="preview-field" style="height: fit-content;">
+                <h1>
+                    Insert new values via URL:
+                </h1>
+                <div class="insertion-option"> <span id="copyable"
+                        style="text-decoration: underline; font-weight: bold; font-style: italic"
+                        th:text="${table.url}"></span>
+                    <br>
+                    <button onclick="copyFieldText(this)">Copy url</button>
+                    <br>
+
+                    <h1>
+                        Or copy code snippets into your code to be performed automatically:
+                    </h1>
+
+                    <div class="code-editor" id="code-editor">
+                        <label for="language">Select Language:</label>
+                        <select id="language">
+                            <option value="js">JavaScript</option>
+                            <option value="ruby">Ruby</option>
+                            <option value="java">Java</option>
+                            <option value="php">PHP</option>
+                            <option value="python">Python</option>
+                            <option value="ts">TypeScript</option>
+                        </select>
+
+                        <textarea id="codeSnippet" class="code-editor" readonly></textarea>
+                        <br><button class="copy-button" onclick="copyCode()">Copy Code</button>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+
+
+
+
+
+    </div>
+
+    </div>
+
+    <div class="footer">
+        <div class="contacts">
+            Contacts:<br>
+            +45 91818710<br>
+            <a href="mailto:datagath@outlook.com">datagath@outlook.com</a><br>
+            No Physical Location Availiable<br>
+        </div>
+
+        <div class="info">
+            Informational:<br>
+            <a href="https://www.transparenttextures.com/graphy-dark.html">Background texture by We Are Pixel 8</a><br>
+            <a href="/privacyPolicy">Privacy Policy</a><br>
+            <a href="/about">About Us</a><br>
+        </div>
+    </div>
+
+</body>
+
+
+<script th:inline="javascript">
+
+    function copyFieldText(button) {
+        const copyText = button.parentElement.querySelector("#copyable");
+
+        // Copy the text inside the text field
+        navigator.clipboard.writeText(copyText.innerText);
+    }
+
+
+    async function generateColumnSummary() {
+
+        const tableName = [[${ table.name }]]
+
+        let columns = await fetchTableSummary(tableName);
+
+        let colString = '';
+        for (const [name, column] of Object.entries(columns)) {
+            let t;
+            if (column.hasOwnProperty('average')) {
+                t = 'Number';
+            } else if (column.hasOwnProperty('top5mostusedwords')) {
+                t = 'Text';
+            }
+            else {
+                t = 'Date'
+            }
+            colString += `<p class="table-p">
+                                <span>${name}: ${t}</span>
+                        </p>`;
+        }
+        document.getElementById('column-list').innerHTML = colString;
+
+
+
+
+        drawEchartsDiagram(document.getElementById("timeframeSelector"))
+    }
+    const echart = echarts.init(document.getElementById("miniChart"));
+
+    async function drawEchartsDiagram(selector) {
+        let timeframe = selector.value;
+        console.log(timeframe)
+        const tableName = [[${ table.name }]]
+
+        let activity = await fetch("/tables/activity", {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                timeFrame: timeframe,
+                tableName: tableName
+            })
+        });
+        activity = await activity.text();
+        let activityArray = activity.split(',').map(function (v) {
+            return parseInt(v);
+        });
+        await echart.setOption(getOption(timeframe, activityArray), true)
+    }
+
+    generateColumnSummary();
+
+
+
+    function getOption(view, activityArray) {
+        const MS = {
+            minute: 60 * 1000,
+            hour: 60 * 60 * 1000,
+            day: 24 * 60 * 60 * 1000
+        };
+
+        let bucketSize;
+        switch (view) {
+            case 'hour':  // 12 buckets @ 5 minutes
+                bucketSize = 5 * MS.minute;
+                break;
+            case 'day':   // 24 buckets @ 1 hour
+                bucketSize = MS.hour;
+                break;
+            case 'week':  // 7 buckets @ 1 day
+                bucketSize = MS.day;
+                break;
+            case 'month': // ~30 buckets @ 1 day
+                bucketSize = MS.day;
+                break;
+            default:
+                bucketSize = MS.minute;
+        }
+
+        // Round "now" down to the nearest bucket so x labels are "round"
+        const nowRounded = Math.floor(Date.now() / bucketSize) * bucketSize;
+        const start = nowRounded - (activityArray.length - 1) * bucketSize;
+
+        // Build time/value pairs (ECharts accepts timestamps in ms)
+        const seriesData = activityArray.map((val, i) => [start + i * bucketSize, val]);
+
+        // small date helpers (consistent formatting across browsers)
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const pad = n => (n < 10 ? '0' + n : n);
+
+        function formatLabel(ts) {
+            const d = new Date(ts);
+            switch (view) {
+                case 'hour':
+                    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;      // 14:05
+                case 'day':
+                    return `${pad(d.getHours())}:00`;                         // 14:00
+                case 'week':
+                case 'month':
+                    return `${months[d.getMonth()]} ${d.getDate()}`;          // Sep 11
+                default:
+                    return d.toLocaleString();
+            }
+        }
+
+        function formatTooltip(ts) {
+            const d = new Date(ts);
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+
+        return {
+            backgroundColor: '#c0c0c0',
+            grid: { left: 50, right: 20, top: 50, bottom: 40 },
+            title: {
+                text: 'Activity Chart',
+                left: 'center',
+                top: 10,
+                textStyle: {
+                    color: '#000080',
+                    fontFamily: 'Tahoma, Verdana, sans-serif',
+                    fontWeight: 'bold',
+                    fontSize: 16,
+                    backgroundColor: '#ffffff',
+                    borderColor: '#808080',
+                    borderWidth: 1,
+                    padding: [4, 8],
+                    textBorderColor: '#ffffff',
+                    textBorderWidth: 1
+                }
+            },
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: '#ffffe1',
+                borderColor: '#000000',
+                borderWidth: 1,
+                textStyle: {
+                    color: '#000000',
+                    fontFamily: 'Tahoma, Verdana, sans-serif',
+                    fontSize: 12
+                },
+                axisPointer: {
+                    type: 'line',
+                    lineStyle: { color: '#000080', width: 1, type: 'dashed' }
+                },
+                formatter: params => {
+                    const p = params[0];
+                    return `${formatTooltip(p.value[0])}<br/>Inserts: ${p.value[1]}`;
+                }
+            },
+            xAxis: {
+                type: 'time',
+                axisLine: { lineStyle: { color: '#000000' } },
+                axisLabel: {
+                    color: '#000000',
+                    fontFamily: 'Tahoma, Verdana, sans-serif',
+                    fontSize: 12,
+                    formatter: value => formatLabel(value)
+                },
+                splitLine: { lineStyle: { color: '#dcdcdc', type: 'solid' } }
+            },
+            yAxis: {
+                type: 'value',
+                axisLine: { lineStyle: { color: '#000000' } },
+                axisLabel: {
+                    color: '#000000',
+                    fontFamily: 'Tahoma, Verdana, sans-serif',
+                    fontSize: 12
+                },
+                splitLine: { lineStyle: { color: '#dcdcdc', type: 'solid' } }
+            },
+            series: [{
+                type: 'bar',
+                data: seriesData,
+                smooth: false,
+                lineStyle: { width: 2, color: '#0000ff' },
+                symbol: 'rect',
+                symbolSize: 6,
+                itemStyle: {
+                    color: '#00ff00',
+                    borderColor: '#000000',
+                    borderWidth: 1
+                },
+                areaStyle: { color: '#add8e6' }
+            }]
+        };
+    }
+
+    // Usage:
+    // myChart.setOption(getOption('hour', activityArray));
+
+
+    // Example usage:
+    // myChart.setOption(getOption('hour', activityArray));
+
+    /**
+     * Generate POST request snippets equivalent to a GET URL with query params
+     * @param {string} url - Full URL with query parameters
+     * @returns {object} - Snippets in JS, Python, PHP, Java, Ruby, TypeScript
+     */
+    function generatePostSnippets(url) {
+        const urlObj = new URL(url);
+        const baseUrl = `${urlObj.origin}${urlObj.pathname}`;
+        const params = Object.fromEntries(urlObj.searchParams.entries());
+
+        // Helper to convert params to JSON or string formats
+        const jsonParams = JSON.stringify(params, null, 4);
+        const phpParams = Object.entries(params).map(([k, v]) => `"${k}" => "${v}"`).join(', ');
+
+        return {
+            js: `// JavaScript fetch POST
+fetch("${baseUrl}", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify(${jsonParams})
+})
+.then(res => res.json())
+.then(data => console.log(data))
+.catch(err => console.error(err));`,
+
+            ts: `// TypeScript fetch POST
+fetch("${baseUrl}", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify(${jsonParams})
+})
+.then((res: Response) => res.json())
+.then((data: any) => console.log(data))
+.catch((err: any) => console.error(err));`,
+
+            python: `# Python requests POST
+import requests
+
+url = "${baseUrl}"
+data = ${jsonParams}
+
+response = requests.post(url, json=data)
+print(response.text)`,
+
+            php: `<?php
+// PHP POST request using cURL
+$url = "${baseUrl}";
+$data = array(${phpParams});
+
+$ch = curl_init($url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+
+$response = curl_exec($ch);
+curl_close($ch);
+echo $response;
+?>`,
+
+            java: `// Java POST request using HttpURLConnection
+import java.io.*;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        URL url = new URL("${baseUrl}");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setDoOutput(true);
+
+        String jsonInputString = "${jsonParams.replace(/\n/g, '').replace(/"/g, '\\"')}";
+
+        try(OutputStream os = conn.getOutputStream()) {
+            byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
+            os.write(input, 0, input.length);
+        }
+
+        try(BufferedReader br = new BufferedReader(
+          new InputStreamReader(conn.getInputStream(), "utf-8"))) {
+            StringBuilder response = new StringBuilder();
+            String responseLine = null;
+            while ((responseLine = br.readLine()) != null) {
+                response.append(responseLine.trim());
+            }
+            System.out.println(response.toString());
+        }
+    }
+}`,
+
+            ruby: `# Ruby POST request using Net::HTTP
+require 'net/http'
+require 'uri'
+require 'json'
+
+uri = URI.parse("${baseUrl}")
+http = Net::HTTP.new(uri.host, uri.port)
+request = Net::HTTP::Post.new(uri.request_uri, {'Content-Type' => 'application/json'})
+request.body = ${jsonParams}
+response = http.request(request)
+puts response.body`
+        };
+    }
+
+    // Example usage:
+    const snippets = generatePostSnippets([[${ table.url }]]);
+    console.log(snippets.js);
+
+
+    const codeElement = document.getElementById('codeSnippet');
+    const languageSelect = document.getElementById('language');
+
+    // Load initial snippet
+    codeElement.value = snippets[languageSelect.value];
+
+    // Update snippet on language change
+    languageSelect.addEventListener('change', () => {
+        codeElement.value = snippets[languageSelect.value];
+    });
+
+    // Copy to clipboard
+    function copyCode() {
+        navigator.clipboard.writeText(codeElement.value).then(() => {
+            alert('Code copied to clipboard!');
+        }).catch(err => {
+            alert('Failed to copy: ' + err);
+        });
+    }
+</script>
+
+</html>

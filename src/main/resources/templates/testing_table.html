@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Draggable List with Select</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    #list { list-style: none; padding: 0; margin: 0; }
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      margin: 5px 0;
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      cursor: grab;
+    }
+    .list-item.dragging { opacity: 0.5; }
+    select { padding: 5px; }
+    button { margin-top: 15px; padding: 8px 12px; }
+  </style>
+</head>
+<body>
+
+  <h2>Draggable List</h2>
+  <ul id="list"></ul>
+  <button id="addBtn">➕ Add Item</button>
+
+  <script>
+    const list = document.getElementById('list');
+    const addBtn = document.getElementById('addBtn');
+    let dragSrcEl = null;
+
+    // Create a list item
+    function createItem(position) {
+      const li = document.createElement('li');
+      li.className = 'list-item';
+      li.draggable = true;
+
+      // Add select element
+      const select = document.createElement('select');
+      ['Option A', 'Option B', 'Option C'].forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        select.appendChild(option);
+      });
+
+      li.appendChild(select);
+      return li;
+    }
+
+    // Update IDs based on vertical order
+    function updateIds() {
+      Array.from(list.children).forEach((li, index) => {
+        li.id = index + 1; // IDs start at 1
+      });
+    }
+
+    // Drag handlers
+    function handleDragStart(e) {
+      dragSrcEl = this;
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      const dragging = document.querySelector('.dragging');
+      const siblings = [...list.querySelectorAll('.list-item:not(.dragging)')];
+      const nextSibling = siblings.find(sibling => {
+        return e.clientY <= sibling.getBoundingClientRect().top + sibling.offsetHeight / 2;
+      });
+      list.insertBefore(dragging, nextSibling);
+    }
+
+    function handleDragEnd() {
+      this.classList.remove('dragging');
+      updateIds();
+    }
+
+    // Add new item
+    function addItem() {
+      const li = createItem();
+      addDragEvents(li);
+      list.appendChild(li);
+      updateIds();
+    }
+
+    // Attach drag event listeners
+    function addDragEvents(li) {
+      li.addEventListener('dragstart', handleDragStart);
+      li.addEventListener('dragover', handleDragOver);
+      li.addEventListener('dragend', handleDragEnd);
+    }
+
+    // Init with 3 items
+    for (let i = 0; i < 3; i++) addItem();
+
+    // Add button click
+    addBtn.addEventListener('click', addItem);
+  </script>
+</body>
+</html>

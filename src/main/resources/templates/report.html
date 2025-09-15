@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/pdf-lib"></script>
+    <link rel="stylesheet" href="/styles/style.css">
+    <script src="/javascript/utill.js"></script>
+
+    <title>DATAGATH->CREATE REPORT</title>
+
+    <style>
+        select {
+            padding: 5px;
+        }
+
+        button {
+            margin-top: 15px;
+            padding: 8px 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="mainDiv wider" style="height: 1000px;">
+
+        <div class="item-row">
+            <div class="logo"
+                style="background-image: url('/icons/torus_icon_2.png'); background-size: 100%; height: 100%; max-height: 100%;">
+            </div>
+            <div class="motto">Build a pdf report for your collection table</div>
+            <div class="profile-button">
+                <button type="button"> <a href="/account">
+                        Profile
+                    </a></button>
+            </div>
+        </div>
+        <div class="split-maindiv">
+            <div class="editor-field">
+
+                <h2>PDF constructor</h2>
+                <p>
+                    Drag items to re-order them.
+                </p>
+                <ul id="list">
+
+
+
+                </ul>
+                <button id="addBtn">➕ Add Item</button>
+
+
+
+            </div>
+            <div class="preview-field">
+
+                <iframe id="pdf" style="width: 100%; height: 100%;"></iframe>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script>
+    createPdf("Report");
+
+
+
+
+
+
+    async function updatePdf() {
+        const list = document.getElementById('list');
+
+
+        const pdfDoc = await PDFLib.PDFDocument.create()
+        const font = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRoman);
+        const page = pdfDoc.addPage()
+        const { width, height } = page.getSize()
+
+        var children = list.children;
+        let n = -1;
+        let ypos = height - 15;
+
+        for (var i = 0; i < children.length; i++) {
+            let listElement = children[i]
+            let contentType = listElement.querySelector('select').value;
+
+            let fontSize, titleText, areatext;
+
+            console.log(ypos)
+
+            switch (contentType) {
+                case 'Title':
+                    fontSize = 30
+                    ypos -= fontSize + 15
+                    console.log(ypos)
+
+                    titleText = listElement.querySelector('.container').querySelector('input').value;
+                    page.drawText(titleText, {
+                        x: 50,
+                        y: ypos,
+                        size: fontSize
+                    })
+                    break;
+                case 'Subtitle':
+                    fontSize = 20
+
+                    ypos -= fontSize + 15
+                    console.log(ypos)
+                    titleText = listElement.querySelector('.container').querySelector('input').value;
+                    page.drawText(titleText, {
+                        x: 50,
+                        y: ypos,
+                        size: fontSize
+                    })
+                    break;
+                case 'Paragraph':
+                    let text = listElement.querySelector('.container').querySelector('textarea').value;
+
+                    let size = 13;
+                    let maxWidth = 500;
+                    let lineHeight = size * 1.2;
+
+                    ypos -= size + 15;
+
+                    // Break text into words
+                    const words = text.split(/\s+/);
+                    let line = '';
+                    let lines = [];
+
+                    for (let i = 0; i < words.length; i++) {
+                        const testLine = line.length > 0 ? line + ' ' + words[i] : words[i];
+                        const width = font.widthOfTextAtSize(testLine, size);
+
+                        if (width > maxWidth && line !== '') {
+                            lines.push(line);
+                            line = words[i];
+                        } else {
+                            line = testLine;
+                        }
+                    }
+                    if (line) lines.push(line);
+
+                    // Draw each line
+                    lines.forEach((ln, idx) => {
+                        ypos -= idx * lineHeight
+                        page.drawText(ln, {
+                            x: 50,
+                            y: ypos,
+                            size,
+                            font
+                        });
+                    });
+                    break;
+                case 'Table Summary':
+                    let table = listElement.querySelector('.container').querySelector('select').value;
+                    let summary = await fetchTableSummary(table);
+                    console.log(summary);
+
+                    for (const [name, column] of Object.entries(summary)) {
+
+                        // Check the type of summary element and generate table rows accordingly
+                        let tableData = [];
+                        let headers = [];
+                        let tableTitle = '';
+
+                        if (column.hasOwnProperty('average')) {
+                            headers = ['Average', 'Median', 'Mode', 'Standard Deviation', 'Count'];
+                            tableData.push([
+                                Math.round(column.average, 2) ?? '',
+                                Math.round(column.median, 2) ?? '',
+                                Math.round(column.mode, 2) ?? '',
+                                Math.round(column.std, 2) ?? '',
+                                Math.round(column.count, 2) ?? ''
+
+
+                            ]);
+                            tableTitle = name
+                        } else if (column.hasOwnProperty('top5mostusedwords')) {
+                            headers = ['Top 5 Most Used Words'];
+                            tableData.push([column.top5mostusedwords.join(', ')]);
+                            tableTitle = 'Top 5 Most Used Words';
+                        }
+
+                        // Draw table title
+                        ypos -= 25;
+                        page.drawText(tableTitle, {
+                            x: 50,
+                            y: ypos,
+                            size: 15,
+                            font
+                        });
+
+                        // Draw headers
+                        ypos -= 20;
+                        let startX = 50;
+                        let colWidth = 100;
+                        headers.forEach((header, idx) => {
+                            page.drawText(header, {
+                                x: startX + idx * colWidth,
+                                y: ypos + 2,
+                                size: 12,
+                                font
+                            });
+                        });
+
+                        // Draw data rows
+                        tableData.forEach((row, rowIdx) => {
+                            ypos -= 18;
+                            row.forEach((cell, colIdx) => {
+                                page.drawText(String(cell), {
+                                    x: startX + colIdx * colWidth,
+                                    y: ypos,
+                                    size: 12,
+                                    font
+                                });
+                            });
+                        });
+                        ypos += 18
+                        // Draw table borders (optional)
+                        let tableWidth = headers.length * colWidth;
+                        let tableHeight = (tableData.length + 1) * 18;
+                        // Horizontal lines
+                        for (let i = 0; i <= tableData.length + 1; i++) {
+                            let y = ypos + 18 * (1 - i);
+                            page.drawLine({
+                                start: { x: startX, y },
+                                end: { x: startX + tableWidth, y },
+                                thickness: 1,
+                                color: PDFLib.rgb(0, 0, 0),
+                            });
+                        }
+                        // Vertical lines
+                        for (let i = 0; i <= headers.length; i++) {
+                            let x = startX + i * colWidth;
+                            page.drawLine({
+                                start: { x, y: ypos + 18 },
+                                end: { x, y: ypos - tableData.length * 18 },
+                                thickness: 1,
+                                color: PDFLib.rgb(0, 0, 0),
+                            });
+                        }
+                        ypos -= 18;
+                    };
+                    break;
+                case 'Image':
+                    let fileInput = listElement.querySelector('.container input');
+                    let file = fileInput.files[0]; // get the first selected file
+
+                    const arrayBuffer = await file.arrayBuffer();
+                    let image;
+                    if (file.type === 'image/png') {
+                        image = await pdfDoc.embedPng(arrayBuffer);
+                    } else if (file.type === 'image/jpeg') {
+                        image = await pdfDoc.embedJpg(arrayBuffer);
+                    } else {
+                        console.warn('Unsupported image type', file.type);
+                        continue;
+                    }
+                    const imgWidth = 200; // adjust size
+                    const imgHeight = (image.height / image.width) * imgWidth;
+                    page.drawImage(image, {
+                        x: 50,
+                        y: ypos - imgHeight - 30,
+                        width: imgWidth,
+                        height: imgHeight,
+                    });
+                    ypos -= imgHeight + 20;
+                    break;
+            }
+        };
+
+
+
+
+        const pdfDataUri = await pdfDoc.saveAsBase64({ dataUri: true });
+        document.getElementById('pdf').src = pdfDataUri;
+    }
+
+
+    async function createPdf(text) {
+        if (typeof (text) != String) {
+            text = text.value;
+        }
+        const pdfDoc = await PDFLib.PDFDocument.create()
+        // const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
+        const font = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRoman);
+        const page = pdfDoc.addPage()
+        const { width, height } = page.getSize()
+        /*
+                const data = [
+                    ['Header 1', 'Header 2', 'Header 3'],
+                    ['Row1-Col1', 'Row1-Col2', 'Row1-Col3'],
+                    ['Row2-Col1', 'Row2-Col2', 'Row2-Col3'],
+                ];
+        
+                const startX = 50;
+                const startY = 750;
+                const rowHeight = 25;
+                const colWidths = [150, 150, 150];
+                const fontSize = 12;
+                data.forEach((row, rowIndex) => {
+                    row.forEach((cellText, colIndex) => {
+                        const x = startX + colWidths.slice(0, colIndex).reduce((a, b) => a + b, 0) + 5;
+                        const y = startY - rowHeight * rowIndex - fontSize;
+                        page.drawText(cellText, {
+                            x,
+                            y,
+                            size: fontSize,
+                            font,
+                            color: PDFLib.rgb(0, 0, 0),
+                        });
+                    });
+                });
+                const tableWidth = colWidths.reduce((a, b) => a + b, 0);
+                const tableHeight = rowHeight * data.length;
+        
+                // Draw horizontal lines
+                for (let i = 0; i <= data.length; i++) {
+                    const y = startY - rowHeight * i;
+                    page.drawLine({
+                        start: { x: startX, y },
+                        end: { x: startX + tableWidth, y },
+                        thickness: 1,
+                        color: PDFLib.rgb(0, 0, 0),
+                    });
+                }
+        
+                // Draw vertical lines
+                let xOffset = startX;
+                colWidths.forEach((width) => {
+                    page.drawLine({
+                        start: { x: xOffset, y: startY },
+                        end: { x: xOffset, y: startY - tableHeight },
+                        thickness: 1,
+                        color: PDFLib.rgb(0, 0, 0),
+                    });
+                    xOffset += width;
+                });
+                // Final right border
+                page.drawLine({
+                    start: { x: xOffset, y: startY },
+                    end: { x: xOffset, y: startY - tableHeight },
+                    thickness: 1,
+                    color: PDFLib.rgb(0, 0, 0),
+                });
+                        */
+
+        const pdfDataUri = await pdfDoc.saveAsBase64({ dataUri: true });
+        document.getElementById('pdf').src = pdfDataUri;
+    }
+
+
+    const list = document.getElementById('list');
+    const addBtn = document.getElementById('addBtn');
+    let dragSrcEl = null;
+
+
+
+    async function changeOptions(selector) {
+
+        let a, b, c;
+        let container = selector.parentElement.querySelector('.container');
+
+        while (container.firstChild != null) {
+            container.lastChild.remove();
+        }
+
+
+        switch (selector.value) {
+            case 'Title':
+                newElement('label', container, 'l', null, 'Type the title')
+
+                a = newElement('input', container, 'title_', '', null);
+                a.onchange = function () { updatePdf(); };
+
+                break;
+            case 'Subtitle':
+                newElement('label', container, 'l', null, 'Type the subtitle')
+
+                a = newElement('input', container, 'title_', '', null);
+                a.onchange = function () { updatePdf(); };
+
+                break;
+            case 'Paragraph':
+                newElement('label', container, 'l', null, 'Type the paragraph')
+
+                a = newElement('textarea', container, 'title_', '', null);
+                a.onchange = function () { updatePdf(); };
+
+                break;
+            case 'Table Summary':
+                newElement('label', container, 'l', null, 'Select Collection Table')
+                a = newElement('select', container, 'selector', null, null);
+                b = await fetch("/tables/usertables", {
+                    method: "GET",
+                    credentials: "include"
+                });
+                b = await b.text();
+                b.split(',').forEach(element => {
+                    newElement('option', a, null, element, element);
+                });
+                a.onchange = function () { updatePdf(); };
+                break;
+            case 'Image':
+                a = newElement('image', container, null, null, null);
+                a.onchange = function () { updatePdf(); };
+                break;
+        }
+
+    }
+
+
+    // Create a list item
+    function createItem(position) {
+        const li = document.createElement('li');
+        li.className = 'list-item';
+        li.draggable = true;
+
+
+
+        // Add select element
+        const select = document.createElement('select');
+        ['Select Content Type', 'Title', 'Subtitle', 'Paragraph', 'Table Summary', 'Image', 'Plot/Diagram'].forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt;
+            option.textContent = opt;
+            select.appendChild(option);
+        });
+
+
+        select.onchange = function () { changeOptions(this); };
+
+        li.appendChild(select);
+
+        const br = document.createElement('br');
+        li.appendChild(br);
+        li.appendChild(br);
+        li.appendChild(br);
+
+        const container = document.createElement('div');
+        container.className = 'container';
+        li.appendChild(container);
+
+        return li;
+    }
+
+    // Update IDs based on vertical order
+    function updateIds() {
+        Array.from(list.children).forEach((li, index) => {
+            li.id = index + 1; // IDs start at 1
+        });
+    }
+
+    // Drag handlers
+    function handleDragStart(e) {
+        dragSrcEl = this;
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        const dragging = document.querySelector('.dragging');
+        const siblings = [...list.querySelectorAll('.list-item:not(.dragging)')];
+        const nextSibling = siblings.find(sibling => {
+            return e.clientY <= sibling.getBoundingClientRect().top + sibling.offsetHeight / 2;
+        });
+        list.insertBefore(dragging, nextSibling);
+    }
+
+    function handleDragEnd() {
+        this.classList.remove('dragging');
+        updateIds();
+        updatePdf();
+
+    }
+
+    // Add new item
+    function addItem() {
+        const li = createItem();
+        addDragEvents(li);
+        list.appendChild(li);
+        updateIds();
+    }
+
+    // Attach drag event listeners
+    function addDragEvents(li) {
+        li.addEventListener('dragstart', handleDragStart);
+        li.addEventListener('dragover', handleDragOver);
+        li.addEventListener('dragend', handleDragEnd);
+    }
+
+    // Init with 3 items
+    for (let i = 0; i < 3; i++) addItem();
+
+    // Add button click
+    addBtn.addEventListener('click', addItem);
+</script>
+
+</html>

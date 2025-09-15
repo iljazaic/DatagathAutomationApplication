@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DATAGATH Code Snippet Copier</title>
+<link rel="stylesheet" href="../static/styles/style.css">
+
+<style>
+/* Extra tweaks specific for snippet copier */
+.copy-button {
+    margin-top: 12px;
+    padding: 6px 12px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+select#language {
+    width: 30%;
+    padding: 6px;
+    margin-bottom: 10px;
+}
+
+textarea.code-editor {
+    width: 100%;
+    min-height: 250px;
+    font-family: "Fira Code", monospace;
+    font-size: 14px;
+}
+</style>
+</head>
+<body>
+<div class="mainDiv">
+    <label for="language">Select Language:</label>
+    <select id="language">
+        <option value="js">JavaScript</option>
+        <option value="ruby">Ruby</option>
+        <option value="java">Java</option>
+        <option value="php">PHP</option>
+        <option value="python">Python</option>
+        <option value="ts">TypeScript</option>
+    </select>
+
+    <textarea id="codeSnippet" class="code-editor" readonly></textarea>
+    <button class="copy-button" onclick="copyCode()">Copy Code</button>
+</div>
+
+<script>
+const snippets = {
+    js: `// JavaScript example
+function greet(name) {
+    console.log('Hello, ' + name);
+}
+greet('World');`,
+
+    ruby: `# Ruby example
+def greet(name)
+  puts "Hello, #{name}"
+end
+greet('World')`,
+
+    java: `// Java example
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello, World");
+    }
+}`,
+
+    php: `<?php
+function greet($name) {
+    echo "Hello, " . $name;
+}
+greet("World"); ?>`,
+
+    python: `# Python example
+def greet(name):
+    print(f"Hello, {name}")
+greet("World")`,
+
+    ts: `// TypeScript example
+function greet(name: string): void {
+    console.log(\`Hello, \${name}\`);
+}
+greet('World');`
+};
+
+const codeElement = document.getElementById('codeSnippet');
+const languageSelect = document.getElementById('language');
+
+// Load initial snippet
+codeElement.value = snippets[languageSelect.value];
+
+// Update snippet on language change
+languageSelect.addEventListener('change', () => {
+    codeElement.value = snippets[languageSelect.value];
+});
+
+// Copy to clipboard
+function copyCode() {
+    navigator.clipboard.writeText(codeElement.value).then(() => {
+        alert('Code copied to clipboard!');
+    }).catch(err => {
+        alert('Failed to copy: ' + err);
+    });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Scheduled Event</title>
+</head>
+
+<link rel="stylesheet" href="/styles/style.css">
+</link>
+<link rel="stylesheet" href="../static/styles/style.css">
+<script src="/javascript/utill.js"></script>
+</link>
+
+<body>
+
+
+    <div class="mainDiv">
+        <h2>
+            Create new Scheduled Event
+        </h2>
+        <button>
+            <a href="/">
+                Home
+            </a>
+        </button>
+        <form id="creationForm">
+            <label id="msg">
+
+            </label>
+            <div class="columnSection" id="colSection">
+                <div class="columnSetup">
+
+                    <label>
+                        Event Name
+                    </label>
+                    <input type="text" name="eventName" value="newScheduledEvent">
+                    <label>
+                        Cron Time <a target="_blank" href="https://crontab.cronhub.io/"
+                            style="text-decoration: underline; color: blue;">HELP</a>
+                    </label>
+                    <input type="text" name="cronString" value="* * * * *">
+
+
+                    <label for="dataType">
+                        Select Event Action
+                    </label>
+
+                    <select name="action" id="typeSelection" value="None Yet" style="font-weight: bold; color: rgb(66, 128, 5);"
+                        onchange="switchEventAction(this)">
+                        <option value="NONE">None yet</option>
+                        <option value="PING">Ping Service</option>
+                        <!--<option value="EMAIL">Draft and send email</option>-->
+                        <option value="REPORT">Build and send a Report on a Collection Table dataset</option>
+                        <option value="AI/LLM">Prompt AI/LLM and send response</option>
+                        <option value="VISUALISTION">Generate Visualisation of Collected Dataset and save/send</option>
+                    </select>
+
+
+
+                    <div id="options">
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+
+
+            </br>
+            <input type="submit" value="CREATE"></input>
+        </form>
+    </div>
+
+    <div class="footer">
+        <div class="contacts">
+            Contacts:<br>
+            +45 91818710<br>
+            <a href="mailto:datagath@outlook.com">datagath@outlook.com</a><br>
+            No Physical Location Availiable<br>
+        </div>
+
+        <div class="info">
+            Informational:<br>
+            <a href="https://www.transparenttextures.com/graphy-dark.html">Background texture by We Are Pixel 8</a><br>
+            <a href="/privacyPolicy">Privacy Policy</a><br>
+            <a href="/about">About Us</a><br>
+        </div>
+    </div>
+</body>
+<script>
+
+    const form = document.getElementById("creationForm");
+    const msg = document.getElementById("msg");
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        let data = new FormData(form);
+        //data = data.JSON();
+        data = Object.fromEntries(data.entries());
+        //let data = nestFormData(formData);
+        console.log(data);
+        try {
+            const response = await fetch("/schedules/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                window.location = '/manage/dashboard';
+            } else {
+                const errorMessage = await response.text();
+                msg.textContent = errorMessage;
+                msg.style.color = "red";
+            }
+        } catch (err) {
+            msg.textContent = "Network error, try again later.";
+            msg.style.color = "red";
+        }
+    });
+
+
+    function openCustomCode(selector) {
+        if (selector.value == 'CUSTOM') {
+            let options = document.getElementById("options");
+            let area = newElement('textarea', options, 'customcode', null, `const option = {
+  title: {
+    text: 'Chart Title',
+    subtext: 'Optional Subtitle',
+    left: 'center'
+  },
+  tooltip: {
+    trigger: 'item' // or 'axis'
+  },
+  legend: {
+    top: 'bottom'
+  },
+  grid: {
+    left: '10%',
+    right: '10%',
+    bottom: '15%',
+    containLabel: true
+  },
+  toolbox: {
+    feature: {
+      saveAsImage: {}
+    }
+  },
+  xAxis: {
+    type: 'category',
+    data: 
+  },
+  yAxis: {
+    type: 'value'
+  },
+  series: [
+    {
+      name: 'Series 1',
+      type: 'bar', // line, pie, scatter, etc.
+      data: [] // e.g., [10, 20, 30, 40]
+    }
+  ]
+};`)
+            area.className = 'code-editor';
+        }
+    }
+
+    async function switchEventAction(selector) {
+
+        let options = document.getElementById("options");
+        while (options.lastChild != null) {
+            options.lastChild.remove();
+        }
+        let input;
+        let select;
+        let option;
+        let button;
+        let label;
+        let textfield;
+        let datasets;
+
+        switch (selector.value) {
+            case "PING":
+                //           type     parent  name   value    text
+                newElement("label", options, null, null, "Enter url/address to ping")
+                newElement("input", options, "pingAddress", "Email or URL. Make sure the URL accepts inbund POST requests.")
+                newElement("label", options, null, null, "Enter an address to ping in case of failure")
+                newElement("input", options, "sendAddress", "Email or URL. Make sure the URL accepts inbund POST requests.")
+                break;
+            case "EMAIL":
+                newElement("label", options, null, null, "Enter your email address")
+                newElement('input', options, 'sendAddress', 'Email or URL. Make sure the URL accepts inbund POST requests')
+            case "AI/LLM":
+                //
+
+
+                newElement("label", options, null, null, "Select your desired model")
+                select = await newElement("select", options, "model", null, null)
+                newElement("option", select, "OPENAI", "OPENAI", "OpenAI/ChatGPT")
+                newElement("option", select, "GOOGLE", "GOOGLE", "Google/Gemini")
+                newElement("option", select, "ANTHROPIC", "ANTHROPIC", "Anthropic/Claude")
+                newElement("option", select, "META", "META", "Meta/Llama")
+
+                newElement("label", options, null, null, "Enter your API key")
+                newElement("input", options, "apikey", "Paid users are provided one for free!", null)
+
+                newElement("label", options, null, null, "Write a prompt")
+                newElement("textarea", options, "prompt", null, null)
+                newElement('p', options, null, null, 'You can provide the LLM with access to a Collection Table by referencing them as ${TableName} or ${TableID}')
+
+                newElement('label', options, null, null, "Enter address to send response to")
+                newElement('input', options, 'sendAddress', 'Email or URL. Make sure the URL accepts inbund POST requests')
+                break;
+            case 'REPORT':
+                newElement('label', options, null, null, 'Select a dataset to build report on')
+                select = newElement('select', options, 'dataset', null, null);
+                datasets = await fetch("/tables/usertables", {
+                    method: "GET",
+                    credentials: "include"
+                });
+                datasets = await datasets.text();
+                datasets.split(',').forEach(element => {
+                    newElement('option', select, null, element, element);
+                });
+                newElement("label", options, null, null, "Enter the address to send the results to")
+                newElement('input', options, 'sendAddress', 'Email or URL. Make sure the URL accepts inbund POST requests')
+                break;
+            case 'VISUALISTION':
+                newElement('label', options, null, null, "Select the dataset to visualise")
+                select = newElement('select', options, 'dataset', null, null);
+                datasets = await fetch("/tables/usertables", {
+                    method: "GET",
+                    credentials: "include"
+                });
+                datasets = await datasets.text();
+                datasets.split(',').forEach(element => {
+                    newElement('option', select, null, element, element);
+                });
+
+                newElement("label", options, null, null, "Select the visualisation type")
+                select = await newElement("select", options, "visualisationType", null, null)
+                console.log(select)
+                select.onchange = function () { openCustomCode(this); };
+                newElement("option", select, "AUTO", "AUTO", "Let the server determine automatically")
+                newElement("option", select, "LINECHART", "LINECHART", "Line chart")
+                newElement("option", select, "BARCHART", "BARCHART", "Bar chart")
+                newElement("option", select, "PIECHART", "PIECHART", "Pie chart")
+                newElement("option", select, "WORDCLOUD", "WORDCLOUD", "Word Cloud")
+                newElement("option", select, "CUSTOM", "CUSTOM", "Write custom echarts option[]")
+
+
+                newElement("label", options, null, null, "Enter the address to send the results to")
+                newElement('input', options, 'sendAddress', 'Email or URL. Make sure the URL accepts inbund POST requests')
+                break;
+        }
+
+    }
+
+</script>
+
+</html>
