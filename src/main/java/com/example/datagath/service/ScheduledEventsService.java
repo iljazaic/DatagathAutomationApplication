@@ -63,6 +63,16 @@ public class ScheduledEventsService {
         }
     }
 
+    public ScheduledEvent findEvent(User user, String eventName) {
+        List<ScheduledEvent> userEvents = scheduledEventsRepository.findByOwner(user);
+        for (ScheduledEvent scheduledEvent : userEvents) {
+            if (scheduledEvent.getName().equals(eventName)) {
+                return scheduledEvent;
+            }
+        }
+        return null;
+    }
+
     public ScheduledEvent insertIntoSchedule(ScheduledEvent event, Map<String, String> eventBody) {
         ScheduledEvent saved = scheduledEventsRepository.save(event);
 
@@ -74,6 +84,30 @@ public class ScheduledEventsService {
                 () -> startPayloadExecution(saved.getAction(), eventBody));
 
         return saved;
+    }
+
+    public SchEvCreationResponse updateScheduledEvent(ScheduledEvent event_, Map<String, String> newEventBody) {
+        SchEvCreationResponse response = new SchEvCreationResponse();
+        try {
+            // delete event
+            event_.setAction(newEventBody.get("action"));
+            String eventId = String.join("-", "event", event_.getId().toString());
+            BackgroundJob.delete(eventId);
+
+            // create new event
+            BackgroundJob.scheduleRecurrently(
+                    eventId,
+                    event_.getCronString(),
+                    () -> startPayloadExecution(event_.getAction(), newEventBody));
+
+            response.setSuccess(true);
+            response.setEventId(event_.getId());
+        } catch (Exception e) {
+            response.setSuccess(false);
+            response.setEventId(null);
+
+        }
+        return response;
     }
 
     public SchEvCreationResponse createNewScheduledEvent(SchEvCreationForm creationForm,
@@ -100,7 +134,7 @@ public class ScheduledEventsService {
             List<ScheduledEvent> eventList = scheduledEventsRepository.findByOwner(user);
             String toRespond = "";
             for (ScheduledEvent event : eventList) {
-                ///System.out.println(event.getName());
+                /// System.out.println(event.getName());
                 toRespond = String.join(",", toRespond, event.getName());
             }
             return toRespond;

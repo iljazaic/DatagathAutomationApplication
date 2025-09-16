@@ -1,6 +1,9 @@
 package com.example.datagath.dto;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class SchEvCreationForm {
     private String eventName;
@@ -128,5 +131,46 @@ public class SchEvCreationForm {
 
     public void setCustomcode(String customcode) {
         this.customcode = customcode;
+    }
+
+    public Map<String, String> setupActionBody() {
+        Map<String, String> eventActionBody = new HashMap<>();
+        String EMAIL_REGEX = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
+        String URL_REGEX = "^https?:\\/\\/((([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}|(\\d{1,3}\\.){3}\\d{1,3}))(:\\d{1,5})?(\\/[^\\s]*)?$";
+        String[] modelList={
+            "OPENAI",
+            "GOOGLE",
+            "ANTHROPIC",
+            "META"
+        };
+        if(getSendAddress()==null || !getSendAddress().matches(URL_REGEX)&&!getSendAddress().matches(EMAIL_REGEX)){return null;};
+        switch (getAction()) {
+            case "PING":
+            if(getPingAddress()==null || !getPingAddress().matches(URL_REGEX)){return null;};
+                eventActionBody.put("pingAddress", getPingAddress());
+                eventActionBody.put("sendAddress", getSendAddress());
+                break;
+            case "REPORT":
+                if(getDataset()==null){return null;};
+                eventActionBody.put("sendAddress", getSendAddress());
+                eventActionBody.put("dataset", getDataset());
+                break;
+            case "AI/LLM":
+                if(getPrompt()==null || getApikey()==null || getModel()==null || !Arrays.asList(modelList).contains(getModel())){return null;}
+                eventActionBody.put("sendAddress", getSendAddress());
+                eventActionBody.put("model", getModel());
+                eventActionBody.put("apikey", getApikey());
+                eventActionBody.put("prompt", getPrompt());
+                break;
+            case "VISUALISTION":
+                if(getDataset()==null || getVisualisationType()==null){return null;}
+                eventActionBody.put("dataset", getDataset());
+                eventActionBody.put("sendAddress", getSendAddress());
+                eventActionBody.put("visualisationType", getVisualisationType());
+                break;
+            default:
+                break;
+        }
+        return eventActionBody;
     }
 }

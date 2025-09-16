@@ -10,7 +10,6 @@ import com.example.datagath.model.User;
 
 public interface ScheduledEventsRepository extends JpaRepository<ScheduledEvent, Long> {
     
-
     List<ScheduledEvent> findByOwner(User user);
     List<ScheduledEvent> findByName(String token);
     Optional<ScheduledEvent> findById(Long id);

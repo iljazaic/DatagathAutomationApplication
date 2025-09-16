@@ -2,6 +2,7 @@ package com.example.datagath.controller;
 
 import java.io.FileNotFoundException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.HttpHeaders;
@@ -13,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.example.datagath.dto.SchEvCreationForm;
 import com.example.datagath.dto.SchEvCreationResponse;
+import com.example.datagath.model.ScheduledEvent;
 import com.example.datagath.model.User;
+import com.example.datagath.repository.ScheduledEventsRepository;
 import com.example.datagath.service.EmailServiceImpl;
 import com.example.datagath.service.FileGenerationService;
 import com.example.datagath.service.NetworkActionsService;
@@ -34,17 +37,24 @@ import org.springframework.web.bind.annotation.GetMapping;
 @RequestMapping("/schedules")
 public class ScheduledEventController {
 
+    private final ScheduledEventsRepository scheduledEventsRepository;
     public final UserService userService;
     public final ScheduledEventsService scheduledEventsService;
     public final EmailServiceImpl emailService;
 
     public ScheduledEventController(UserService userService, ScheduledEventsService scheduledEventsService,
-            EmailServiceImpl emailService) {
+            EmailServiceImpl emailService, ScheduledEventsRepository scheduledEventsRepository) {
         this.userService = userService;
         this.scheduledEventsService = scheduledEventsService;
         this.emailService = emailService;
+        this.scheduledEventsRepository = scheduledEventsRepository;
     }
 
+    // TESTING NEW EMAIL CREATION SYSTEM
+    // NetworkActionsService networkActionsService = new
+    // NetworkActionsService(emailService);
+    // networkActionsService.sendResponse(FileGenerationService.generatePDFReportOnCollectionTable(null),
+    // sessionToken);
     @PostMapping("/create")
     public ResponseEntity<?> createScheduledEvent(
             @CookieValue(value = "sessionToken", required = false) String sessionToken,
@@ -54,36 +64,10 @@ public class ScheduledEventController {
         User user = sessionToken != null ? userService.validateSessionToken(sessionToken) : null;
         if (user != null) {
             eventCreationForm.setUserId(user.getId());
-            Map<String, String> eventActionBody = new HashMap<>();
-            switch (eventCreationForm.getAction()) {
-                case "PING":
-                    eventActionBody.put("pingAddress", eventCreationForm.getPingAddress());
-                    eventActionBody.put("sendAddress", eventCreationForm.getSendAddress());
-                    break;
-                case "REPORT":
-                    eventActionBody.put("sendAddress", eventCreationForm.getSendAddress());
-                    eventActionBody.put("dataset", eventCreationForm.getDataset());
-                    break;
-                case "AI/LLM":
-                    eventActionBody.put("sendAddress", eventCreationForm.getSendAddress());
-                    eventActionBody.put("model", eventCreationForm.getModel());
-                    eventActionBody.put("apikey", eventCreationForm.getApikey());
-                    eventActionBody.put("prompt", eventCreationForm.getPrompt());
-                    break;
-                case "VISUALISTION":
-                    eventActionBody.put("dataset", eventCreationForm.getDataset());
-                    eventActionBody.put("sendAddress", eventCreationForm.getSendAddress());
-                    eventActionBody.put("visualisationType", eventCreationForm.getVisualisationType());
-                    break;
-                default:
-                    break;
-
+            Map<String, String> eventActionBody = eventCreationForm.setupActionBody();
+            if (eventActionBody == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Some or all paramaters missing");
             }
-
-            // TESTING NEW EMAIL CREATION SYSTEM
-            NetworkActionsService networkActionsService = new NetworkActionsService(emailService);
-            networkActionsService.sendResponse(FileGenerationService.generatePDFReportOnCollectionTable(null),
-                    sessionToken);
 
             SchEvCreationResponse creationResponse = scheduledEventsService.createNewScheduledEvent(eventCreationForm,
                     eventActionBody);
@@ -92,11 +76,54 @@ public class ScheduledEventController {
                         .header(HttpHeaders.LOCATION, "/schedules/" + creationResponse.getEventId())
                         .body("success");
             } else {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("there was an error");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Server error crating event. Try agai later or report the issue.");
             }
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not logged in to create the event");
         }
+    }
+
+    @PostMapping("/update")
+    public ResponseEntity<?> updateScheduledEvent(
+            @CookieValue(value = "sessionToken", required = false) String sessionToken,
+            @RequestBody SchEvCreationForm eventCreationForm)
+            throws FileNotFoundException, DocumentException, MessagingException {
+
+        User user = sessionToken != null ? userService.validateSessionToken(sessionToken) : null;
+        if (user != null) {
+            Map<String, String> eventActionBody = eventCreationForm.setupActionBody();
+            if (eventActionBody == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Some or all parameters are missing. Please fill out all the fields.");
+            }
+
+            // update event in jpa
+            if (eventCreationForm != null && eventCreationForm.getAction() != null) {
+                ScheduledEvent existingEvent = scheduledEventsService.findEvent(user, eventCreationForm.getEventName());
+
+                if (existingEvent == null) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Non Existent Event");
+                } else {
+                    existingEvent.setAction(eventCreationForm.getAction());
+                    existingEvent = scheduledEventsRepository.save(existingEvent);
+                    SchEvCreationResponse response = scheduledEventsService.updateScheduledEvent(existingEvent,
+                            eventActionBody);
+                    if (response.getSuccess()) {
+                        return ResponseEntity.ok().header(HttpHeaders.LOCATION, "./manage/dashboard")
+                                .body("Updated Event Successfully");
+                    } else {
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body("Internal error updating event. Try again later.");
+                    }
+                }
+
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("No new action detected!");
+
+            }
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No Login detected");
     }
 
     @GetMapping("/create")
