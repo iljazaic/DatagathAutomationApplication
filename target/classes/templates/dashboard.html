@@ -30,7 +30,9 @@
 
 
         <div class="item-row">
-            <div class="logo" style="background-image: url('/icons/torus_icon_2.png'); background-size: 100%; height: 100%; max-height: 100%;"></div>
+            <div class="logo"
+                style="background-image: url('/icons/torus_icon_2.png'); background-size: 100%; height: 100%; max-height: 100%;">
+            </div>
             <h2 style="text-decoration: none; font-size: large; text-align: center;">
                 DATAGATH Dashboard
             </h2>
@@ -258,7 +260,7 @@
                         </p>`;
         }
 
-        var insertion = `<div class="cards">
+        var insertion = `
                     <div class="card dashboard-card">
                         <div class="basic-table-info" style="max-width: 100%; width: 100%;">
                             <h3 class="dashboard-title">
@@ -268,11 +270,12 @@
                             ${colString}
                             </div>
                         </div>
-
-                    </div>
+                        <button id="logout" onclick="initDeleteEvent('${scheduleName}')" class="download-button-dashboard">
+                            X
+                        </button>
                 </div>
 `
-        document.getElementById('scheduleSection').innerHTML += insertion;
+        document.getElementById('schedule-cards').insertAdjacentHTML("beforeend", insertion);
 
     }
 
@@ -315,12 +318,14 @@
             credentials: "include"
         });
         schedules = await schedules.text();
-        await schedules.split(',').forEach(async element => {
+        schedules = schedules.split(',');
+        for (const element of schedules) {
             if ((element.length) > 0) {
+
                 await createScheduleCard(element);
             }
-        });
-        document.getElementById('schedule-cards').innerHTML += `
+        }
+        let insertion = `
         <div class="card dashboard-card newcard">
                         <button class="newTableButton">
                             <a href="/schedules/create">
@@ -328,6 +333,9 @@
                             </a>
                         </button>
                     </div>`;
+        let wrapper = document.createElement("div");
+        wrapper.innerHTML = insertion;
+        document.getElementById('schedule-cards').appendChild(wrapper.firstElementChild);
 
     }
 
@@ -348,6 +356,28 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     tableName: tableName
+                })
+            });
+            //response = await response.text();
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                closePopUp();
+                let text = await response.text();
+                alert(text);
+            }
+        }
+    }
+
+    function initDeleteEvent(scheduleName) {
+        document.getElementById("deleteConfirm").style.visibility = "visible";
+        document.getElementById("yesButton").onclick = async function () {
+            console.log("init deletion of " + scheduleName)
+            let response = await fetch("/schedules/delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    eventName: scheduleName
                 })
             });
             //response = await response.text();

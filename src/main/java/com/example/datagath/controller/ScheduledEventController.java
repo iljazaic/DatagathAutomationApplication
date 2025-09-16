@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.example.datagath.dto.SchEvCreationForm;
 import com.example.datagath.dto.SchEvCreationResponse;
@@ -68,7 +69,7 @@ public class ScheduledEventController {
             if (eventActionBody == null && !eventCreationForm.getAction().equals("NONE")) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Some or all parameters missing");
             }
-
+            
             SchEvCreationResponse creationResponse = scheduledEventsService.createNewScheduledEvent(eventCreationForm,
                     eventActionBody);
             if (creationResponse.getSuccess()) {
@@ -127,10 +128,13 @@ public class ScheduledEventController {
     }
 
     @PostMapping("/delete")
+    @ResponseBody
+
     public ResponseEntity<?> postMethodName(@CookieValue(required = false) String sessionToken,
-            @RequestParam String eventName) {
+            @RequestBody Map<String, String> request) {
         User user = sessionToken != null ? userService.validateSessionToken(sessionToken) : null;
         if (user != null) {
+            String eventName = request.get("eventName");
             Map<String, String> response = new HashMap<>();
             List<ScheduledEvent> allEvennts = scheduledEventsRepository.findByOwner(user);
             ScheduledEvent event = allEvennts.stream().filter(p -> p.getName().equals(eventName)).findFirst()
@@ -139,6 +143,8 @@ public class ScheduledEventController {
                 scheduledEventsRepository.delete(event);
                 return ResponseEntity.ok().body("DELETED");
             }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("No Such Table Exists");
+
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No Credentials provided");
 
