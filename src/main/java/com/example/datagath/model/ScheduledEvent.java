@@ -41,10 +41,11 @@ public class ScheduledEvent {
     public ScheduledEvent() {
     }
 
-    public ScheduledEvent(String name, String cronString, User owner) {
+    public ScheduledEvent(String name, String cronString, User owner, String action) {
         this.name = name;
         this.cronString = cronString;
         this.owner = owner;
+        this.action = action;
     }
 
     public User getOwner() {

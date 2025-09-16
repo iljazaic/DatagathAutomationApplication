@@ -4,7 +4,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -80,11 +82,6 @@ public class AnalisysController {
         return Collections.emptyMap();
     }
 
-
-
-
-
-
     @PostMapping("/eventcontext")
     @ResponseBody
     public Map<String, String> eventContextRequest(@CookieValue(required = false) String sessionToken,
@@ -99,8 +96,13 @@ public class AnalisysController {
                     response.put("name", scheduledEvent.getName());
                     response.put("description", scheduledEvent.getDescription());
                     String action = scheduledEvent.getAction();
-                    for (String actionPart : action.split(";")) {
-                        response.put(actionPart.split(":")[0], actionPart.split(":")[1]);
+                    if (!action.equals("NONE")) {
+
+                        for (String actionPart : action.split(";")) {
+                            response.put(actionPart.split(":")[0], actionPart.split(":")[1]);
+                        }
+                    } else {
+                        response.put("Action", "None");
                     }
                     return response;
                 }
@@ -111,14 +113,14 @@ public class AnalisysController {
     }
 
     @GetMapping("/{TableName}")
-    public String getMethodName(@PathVariable String TableName, @CookieValue(required = false) String sessionToken, Model model) {
+    public String getMethodName(@PathVariable String TableName, @CookieValue(required = false) String sessionToken,
+            Model model) {
         User user = sessionToken != null ? userService.validateSessionToken(sessionToken) : null;
 
-
-        if(user!=null){
+        if (user != null) {
             CollectionTable table = dynamicTableService.findTable(user.getId(), TableName);
-            if(table!=null){
-                //Map<String,String> tableData = new HashMap<>();
+            if (table != null) {
+                // Map<String,String> tableData = new HashMap<>();
 
                 model.addAttribute("table", table);
                 System.out.println(table.getUrl());
@@ -126,7 +128,6 @@ public class AnalisysController {
             }
         }
         return "redirect:/login";
-
 
     }
 

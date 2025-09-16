@@ -184,7 +184,7 @@
 
 
         var insertion = `
-                <div class="card dashboard-card" id="${tableName}">
+                <div class="card dashboard-card" id="${tableName.replaceAll(' ', '_')}">
                     <div class="basic-table-info">
                         <h3 class="dashboard-title">
                             ${tableName}
@@ -230,12 +230,12 @@
         activity = activity.split(',').map(function (v) {
             return parseInt(v);
         });
-
+        console.log(activity)
         document.getElementById('table-cards').insertAdjacentHTML("beforeend", insertion);
 
         let chart = document
             .getElementById('table-cards')
-            .querySelector("#" + tableName)
+            .querySelector("#" + tableName.replaceAll(' ', '_'))
             .querySelector("#miniChart");
 
         await loadEchatsActivity(chart, activity);
@@ -262,7 +262,7 @@
                     <div class="card dashboard-card">
                         <div class="basic-table-info" style="max-width: 100%; width: 100%;">
                             <h3 class="dashboard-title">
-                                Event_0
+                            ${scheduleName}
                             </h3>
                             <div class="dashboard-list" style="max-width: 500px; width: 100%;">
                             ${colString}

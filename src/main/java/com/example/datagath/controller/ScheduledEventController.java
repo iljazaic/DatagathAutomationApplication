@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.example.datagath.dto.SchEvCreationForm;
 import com.example.datagath.dto.SchEvCreationResponse;
@@ -18,8 +19,6 @@ import com.example.datagath.model.ScheduledEvent;
 import com.example.datagath.model.User;
 import com.example.datagath.repository.ScheduledEventsRepository;
 import com.example.datagath.service.EmailServiceImpl;
-import com.example.datagath.service.FileGenerationService;
-import com.example.datagath.service.NetworkActionsService;
 import com.example.datagath.service.ScheduledEventsService;
 import com.example.datagath.service.UserService;
 import com.itextpdf.text.DocumentException;
@@ -33,6 +32,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.GetMapping;
 
+//Basic CRUD for scheduledEvents by users;
 @Controller
 @RequestMapping("/schedules")
 public class ScheduledEventController {
@@ -65,8 +65,8 @@ public class ScheduledEventController {
         if (user != null) {
             eventCreationForm.setUserId(user.getId());
             Map<String, String> eventActionBody = eventCreationForm.setupActionBody();
-            if (eventActionBody == null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Some or all paramaters missing");
+            if (eventActionBody == null && !eventCreationForm.getAction().equals("NONE")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Some or all parameters missing");
             }
 
             SchEvCreationResponse creationResponse = scheduledEventsService.createNewScheduledEvent(eventCreationForm,
@@ -124,6 +124,24 @@ public class ScheduledEventController {
             }
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No Login detected");
+    }
+
+    @PostMapping("/delete")
+    public ResponseEntity<?> postMethodName(@CookieValue(required = false) String sessionToken,
+            @RequestParam String eventName) {
+        User user = sessionToken != null ? userService.validateSessionToken(sessionToken) : null;
+        if (user != null) {
+            Map<String, String> response = new HashMap<>();
+            List<ScheduledEvent> allEvennts = scheduledEventsRepository.findByOwner(user);
+            ScheduledEvent event = allEvennts.stream().filter(p -> p.getName().equals(eventName)).findFirst()
+                    .orElse(null);
+            if (event != null) {
+                scheduledEventsRepository.delete(event);
+                return ResponseEntity.ok().body("DELETED");
+            }
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No Credentials provided");
+
     }
 
     @GetMapping("/create")
