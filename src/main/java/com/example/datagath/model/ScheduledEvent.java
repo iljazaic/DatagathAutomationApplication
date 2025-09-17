@@ -1,5 +1,9 @@
 package com.example.datagath.model;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -46,6 +50,49 @@ public class ScheduledEvent {
         this.cronString = cronString;
         this.owner = owner;
         this.action = action;
+    }
+
+    public void generateActionBody(Map<String, String> actionBodyMap) {
+        String action = actionBodyMap.containsKey("action") ? actionBodyMap.get("action") : null;
+        if (action == null) {
+            return;
+        }
+        
+        Map<String,String> requiredKeys = new HashMap<String,String>(){
+            {
+                put("PING", "");
+            }
+        }
+
+
+        String body = new String();
+        switch (action) {
+            case "PING":
+                //Boolean containsRequiredKeys = Arrays.stream(requiredKeys[0].split(",")).filter(p->actionBodyMap.containsKey(p)).toArray(String[]::new).length==requiredKeys[0].split(",").length;
+                Boolean containsKeys = Arrays.stream(requiredKeys.get(action).split(",")).allMatch(actionBodyMap::containsKey);
+                if (actionBodyMap.containsKey("sendAddress") && actionBodyMap.containsKey("pingAddress")) {
+                    body = "SEND_ADDRESS:%s;PING_ADDRESS:%s".formatted(actionBodyMap.get("sendAddress"),
+                            actionBodyMap.get("pingAddress"));
+                    this.actionBody = body;
+                }
+                break;
+            case "REPORT":
+                if (actionBodyMap.containsKey("sendAddress") && actionBodyMap.containsKey("dataset")) {
+                    body = "SEND_ADDRESS:%s;DATASET:%s".formatted(actionBodyMap.get("sendAddress"),
+                            actionBodyMap.get("dataset"));
+                    this.actionBody = body;
+                }
+                break;
+            case "AI/LLM":
+                if (actionBodyMap.containsKey("sendAddress") && actionBodyMap.containsKey("model"))&& {
+                    body = "SEND_ADDRESS:%s;DATASET:%s".formatted(actionBodyMap.get("sendAddress"),
+                            actionBodyMap.get("dataset"));
+                    this.actionBody = body;
+                }
+                break;
+            default:
+                break;
+        }
     }
 
     public User getOwner() {
@@ -99,7 +146,8 @@ public class ScheduledEvent {
     public Long getId() {
         return id;
     }
+
     public void setId(Long id) {
-        this.id=id;
+        this.id = id;
     }
 }
