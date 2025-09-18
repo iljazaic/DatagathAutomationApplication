@@ -1,5 +1,6 @@
 package com.example.datagath.service;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -12,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -273,16 +275,21 @@ public class DynamicTableService {
                 query = entityManager.createNativeQuery(sql);
 
                 @SuppressWarnings("unchecked")
-                List<Object[]> resultsText = query.getResultList();
+                List<Object> resultsText = query.getResultList();
 
                 List<String> valueStrings = resultsText.stream()
                         .filter(Objects::nonNull)
                         .map(row -> {
-                            Object value = row instanceof Object[] ? ((Object[]) row)[0] : row;
-                            return value != null ? value.toString() : null;
+                            if (row instanceof Object[]) {
+                                Object[] arr = (Object[]) row;
+                                return arr.length > 0 && arr[0] != null ? arr[0].toString() : null;
+                            } else {
+                                return row.toString();
+                            }
                         })
                         .filter(Objects::nonNull)
-                        .toList();
+                        .collect(Collectors.toList()); // use collect in Java <16
+
                 return Stats.top10Strings(valueStrings);
             default:
                 return Collections.emptyMap();
@@ -313,12 +320,15 @@ public class DynamicTableService {
     public String exportTableToCsv(String tableName, Long ownerId) {
         CollectionTable collectionTable = ownerId != null && tableName != null ? findTable(ownerId, tableName) : null;
         if (collectionTable != null) {
-            String sql = "SELECT * FROM " + collectionTable.getId();
+            String sql = "SELECT * FROM `" + collectionTable.getId() + "`";
             Query query = entityManager.createNativeQuery(sql);
 
             @SuppressWarnings("unchecked")
             List<Object[]> results = query.getResultList();
-
+            File folder = new File("../fileBufferStorage");
+            if (!folder.exists()) {
+                folder.mkdirs(); // creates all nonexistent parent directories
+            }
             try (FileWriter writer = new FileWriter("../fileBufferStorage/" + collectionTable.getId() + ".csv")) {
                 for (Object[] row : results) {
                     for (int i = 0; i < row.length; i++) {

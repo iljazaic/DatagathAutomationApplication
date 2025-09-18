@@ -136,34 +136,51 @@ public class SchEvCreationForm {
     public Map<String, String> setupActionBody() {
         Map<String, String> eventActionBody = new HashMap<>();
         String EMAIL_REGEX = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
-        String URL_REGEX = "^https?:\\/\\/((([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}|(\\d{1,3}\\.){3}\\d{1,3}))(:\\d{1,5})?(\\/[^\\s]*)?$";
-        String[] modelList={
-            "OPENAI",
-            "GOOGLE",
-            "ANTHROPIC",
-            "META"
+        String URL_REGEX = "^(https?:\\/\\/)?((([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}|(\\d{1,3}\\.){3}\\d{1,3}))(:\\d{1,5})?(\\/[^\\s]*)?$";
+        String[] modelList = {
+                "OPENAI",
+                "GOOGLE",
+                "ANTHROPIC",
+                "META"
         };
-        if(getSendAddress()==null || !getSendAddress().matches(URL_REGEX)&&!getSendAddress().matches(EMAIL_REGEX)){return null;};
+        System.out.println(getAction());
+        if (getSendAddress() == null
+                || !getSendAddress().matches(URL_REGEX) && !getSendAddress().matches(EMAIL_REGEX)) {
+            return null;
+        }
+        ;
         switch (getAction()) {
             case "PING":
-            if(getPingAddress()==null || !getPingAddress().matches(URL_REGEX)){return null;};
+                System.out.println("processing ping");
+                if (getPingAddress() == null || !getPingAddress().matches(URL_REGEX)) {
+                    return null;
+                }
+                //System.out.println(getPi);
                 eventActionBody.put("pingAddress", getPingAddress());
                 eventActionBody.put("sendAddress", getSendAddress());
                 break;
             case "REPORT":
-                if(getDataset()==null){return null;};
+                if (getDataset() == null) {
+                    return null;
+                }
+                ;
                 eventActionBody.put("sendAddress", getSendAddress());
                 eventActionBody.put("dataset", getDataset());
                 break;
             case "AI/LLM":
-                if(getPrompt()==null || getApikey()==null || getModel()==null || !Arrays.asList(modelList).contains(getModel())){return null;}
+                if (getPrompt() == null || getApikey() == null || getModel() == null
+                        || !Arrays.asList(modelList).contains(getModel())) {
+                    return null;
+                }
                 eventActionBody.put("sendAddress", getSendAddress());
                 eventActionBody.put("model", getModel());
                 eventActionBody.put("apikey", getApikey());
                 eventActionBody.put("prompt", getPrompt());
                 break;
             case "VISUALISTION":
-                if(getDataset()==null || getVisualisationType()==null){return null;}
+                if (getDataset() == null || getVisualisationType() == null) {
+                    return null;
+                }
                 eventActionBody.put("dataset", getDataset());
                 eventActionBody.put("sendAddress", getSendAddress());
                 eventActionBody.put("visualisationType", getVisualisationType());
@@ -171,6 +188,7 @@ public class SchEvCreationForm {
             default:
                 break;
         }
+        eventActionBody.put("action", getAction());
         return eventActionBody;
     }
 }

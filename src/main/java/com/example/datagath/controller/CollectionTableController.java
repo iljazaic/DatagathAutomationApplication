@@ -4,10 +4,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpHeaders;
 
 import com.example.datagath.dto.ColumnDTO;
 import com.example.datagath.dto.TableCreationForm;
@@ -21,7 +24,9 @@ import com.itextpdf.text.pdf.PdfStructTreeController.returnType;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import java.net.http.HttpHeaders;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.Arrays;
 
 import org.springframework.web.bind.annotation.CookieValue;
@@ -30,6 +35,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
@@ -47,6 +53,7 @@ public class CollectionTableController {
         this.collectionTableRepository = collectionTableRepository;
     }
 
+    // CRUD functionality
     @PostMapping("/create")
     public ResponseEntity<?> createNewTable(@CookieValue(value = "sessionToken", required = false) String token,
             @RequestBody TableCreationForm tableCreationForm) {
@@ -71,30 +78,22 @@ public class CollectionTableController {
         }
     }
 
-    @GetMapping("/create")
-    public String initiateTableCreation(@CookieValue(value = "sessionToken", required = false) String token) {
+    @PostMapping("/delete")
+    @ResponseBody
+    public ResponseEntity<?> deleteTable(@CookieValue(value = "sessionToken", required = false) String token,
+            @RequestBody Map<String, String> request) {
         User user = token != null ? userService.validateSessionToken(token) : null;
         if (user != null) {
-            return "tableCreator";
-        } else {
-            return "redirect:/login";
-        }
-    }
+            CollectionTable tableToDelete = dynamicTableService.findTable(user.getId(),
+                    request.get("tableName"));
 
-    @RequestMapping(value = "/chart", method = { RequestMethod.GET, RequestMethod.POST })
-    public ResponseEntity<?> getMethodName(@CookieValue(value = "sessionToken", required = false) String token,
-            @RequestParam(required = false) String tableName) {
-        User user = token != null ? userService.validateSessionToken(token) : null;
-        if (user != null && tableName != null) {
-            String echartsFramework = dynamicTableService.formatTableIntoEcharts(tableName, user.getId());
-            if (echartsFramework != null) {
-                return ResponseEntity.status(HttpStatus.OK).body(echartsFramework);
-            } else {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Issue Fetching Table");
+            if (tableToDelete != null) {
+                collectionTableRepository.delete(tableToDelete);
+                return ResponseEntity.ok().body("DELETED");
             }
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Insufficient data provided or wrong table");
-    };
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No Credentials provided");
+    }
 
     @RequestMapping(value = "/input", method = { RequestMethod.GET, RequestMethod.POST })
     public ResponseEntity<?> inputValueIntoTable(
@@ -137,15 +136,33 @@ public class CollectionTableController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Table does not exist");
     }
 
-    @GetMapping("/usertables")
-    public ResponseEntity<?> getUserTables(@CookieValue(value = "sessionToken", required = false) String token) {
+    // CRUD mapping
+
+    @GetMapping("/create")
+    public String initiateTableCreation(@CookieValue(value = "sessionToken", required = false) String token) {
         User user = token != null ? userService.validateSessionToken(token) : null;
-        String results = dynamicTableService.getAllTableNamesForUser(user);
-        System.out.println(results);
-        ResponseEntity<?> response = results != null ? ResponseEntity.status(HttpStatus.FOUND).body(results)
-                : ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No User Specified");
-        return response;
+        if (user != null) {
+            return "tableCreator";
+        } else {
+            return "redirect:/login";
+        }
     }
+
+    // graphing mapping
+    @RequestMapping(value = "/chart", method = { RequestMethod.GET, RequestMethod.POST })
+    public ResponseEntity<?> getMethodName(@CookieValue(value = "sessionToken", required = false) String token,
+            @RequestParam(required = false) String tableName) {
+        User user = token != null ? userService.validateSessionToken(token) : null;
+        if (user != null && tableName != null) {
+            String echartsFramework = dynamicTableService.formatTableIntoEcharts(tableName, user.getId());
+            if (echartsFramework != null) {
+                return ResponseEntity.status(HttpStatus.OK).body(echartsFramework);
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Issue Fetching Table");
+            }
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Insufficient data provided or wrong table");
+    };
 
     @PostMapping("/activity")
     @ResponseBody
@@ -166,21 +183,42 @@ public class CollectionTableController {
         return "NO CREDENTIALS PROVIDED";
     }
 
-    @PostMapping("/delete")
-    @ResponseBody
-    public ResponseEntity<?> deleteTable(@CookieValue(value = "sessionToken", required = false) String token,
-            @RequestBody Map<String, String> request) {
+    // list all tables of a user
+    @GetMapping("/usertables")
+    public ResponseEntity<?> getUserTables(@CookieValue(value = "sessionToken", required = false) String token) {
+        User user = token != null ? userService.validateSessionToken(token) : null;
+        String results = dynamicTableService.getAllTableNamesForUser(user);
+        System.out.println(results);
+        ResponseEntity<?> response = results != null ? ResponseEntity.status(HttpStatus.FOUND).body(results)
+                : ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No User Specified");
+        return response;
+    }
+
+
+    //download to csv mapping
+    @GetMapping("/download/{tableName}")
+    public ResponseEntity<?> getMethodName(@PathVariable("tableName") String tableName,
+            @RequestParam(required = false) Map<String, String> allParams,
+            @CookieValue(value = "sessionToken", required = false) String token) throws IOException {
         User user = token != null ? userService.validateSessionToken(token) : null;
         if (user != null) {
-            CollectionTable tableToDelete = dynamicTableService.findTable(user.getId(),
-                    request.get("tableName"));
+            String pathToFile = dynamicTableService.exportTableToCsv(tableName, user.getId());
+            File file = new File(pathToFile);
+            StreamingResponseBody stream = outputStream -> {
+                try (FileInputStream inputStream = new FileInputStream(file)) {
+                    inputStream.transferTo(outputStream);
+                } finally {
+                    // file.delete();
+                }
+            };
 
-            if (tableToDelete != null) {
-                collectionTableRepository.delete(tableToDelete);
-                return ResponseEntity.ok().body("DELETED");
-            }
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No Credentials provided");
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
+                    .contentType(MediaType.parseMediaType("text/csv"))
+                    .body(stream);
+        } else
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).header(HttpHeaders.LOCATION, "/login")
+                    .body("No user speficified");
 
     }
 

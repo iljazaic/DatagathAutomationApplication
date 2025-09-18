@@ -24,6 +24,7 @@ import com.example.datagath.repository.ScheduledEventsRepository;
 import com.example.datagath.service.DynamicTableService;
 import com.example.datagath.service.UserService;
 import com.itextpdf.text.pdf.PdfStructTreeController.returnType;
+import com.zaxxer.hikari.util.SuspendResumeLock;
 
 import jakarta.websocket.server.PathParam;
 
@@ -97,8 +98,8 @@ public class AnalisysController {
                     response.put("description", scheduledEvent.getDescription());
                     String action = scheduledEvent.getAction();
                     if (!action.equals("NONE")) {
-
-                        for (String actionPart : action.split(";")) {
+                        System.out.println("BBBBBB "+scheduledEvent.getActionBody());
+                        for (String actionPart : scheduledEvent.getActionBody().split(";")) {
                             response.put(actionPart.split(":")[0], actionPart.split(":")[1]);
                         }
                     } else {

@@ -360,9 +360,8 @@
         const baseUrl = `${urlObj.origin}${urlObj.pathname}`;
         const params = Object.fromEntries(urlObj.searchParams.entries());
 
-        // Helper to convert params to JSON or string formats
         const jsonParams = JSON.stringify(params, null, 4);
-        const phpParams = Object.entries(params).map(([k, v]) => `"${k}" => "${v}"`).join(', ');
+        const phpParams = Object.entries(params).map(([k, v]) => `"${k}" => ${v}`).join(', ');
 
         return {
             js: `// JavaScript fetch POST

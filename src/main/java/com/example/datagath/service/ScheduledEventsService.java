@@ -47,7 +47,7 @@ public class ScheduledEventsService {
 
     public void startPayloadExecution(String action, Map<String, String> actionParams)
             throws IOException, InterruptedException {
-        if(actionParams.isEmpty()){
+        if (actionParams.isEmpty()) {
             return;
         }
 
@@ -80,8 +80,9 @@ public class ScheduledEventsService {
     }
 
     public ScheduledEvent insertIntoSchedule(ScheduledEvent event, Map<String, String> eventBody) {
-        ScheduledEvent saved = scheduledEventsRepository.save(event);
+        event.generateActionBody(eventBody);
 
+        ScheduledEvent saved = scheduledEventsRepository.save(event);
 
         // uhhhh maybe this works
         BackgroundJob.scheduleRecurrently(
@@ -122,14 +123,17 @@ public class ScheduledEventsService {
         User owner = userRepository.findById(creationForm.getUserId()).orElse(null);
         String cronString = creationForm.getCronString();
         System.out.println(creationForm.getAction());
+
         SchEvCreationResponse response = new SchEvCreationResponse();
         response.setSuccess(false);
         response.setEventId(null);
         if (name != null && owner != null && cronString != null) {
-            Map<String,String> sentBody = eventBody==null?Collections.emptyMap():eventBody;
+            Map<String, String> sentBody = eventBody == null ? Collections.emptyMap() : eventBody;
             ScheduledEvent scheduledEvent = insertIntoSchedule(
                     new ScheduledEvent(name, cronString, owner, creationForm.getAction()), sentBody);
+
             if (scheduledEvent != null) {
+                System.out.println(scheduledEvent.getActionBody());
                 response.setSuccess(true);
                 response.setEventId(scheduledEvent.getId());
             }

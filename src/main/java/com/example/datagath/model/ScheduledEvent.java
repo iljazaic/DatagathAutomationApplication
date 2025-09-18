@@ -59,16 +59,7 @@ public class ScheduledEvent {
         if (action == null) {
             return;
         }
-
-        // Map<String,String> requiredKeys = new HashMap<String,String>(){
-        // {
-        // put("PING", "sendAddress,pingAddress");
-        // put("AI/LLM", "model,prompt,sendAddress,apikey");
-        // put("REPORT","dataset,sendAddress");
-        // put("VISUALISATION","dataset,visualisation,sendAddress");
-        // }
-        // };
-
+        System.out.println("GETTING TO THE GENERATION PART");
         Map<String, List<String>> requiredKeys = new HashMap<String, List<String>>() {
             {
                 put("PING", Arrays.asList("sendAddress", "pingAddress"));
@@ -78,23 +69,23 @@ public class ScheduledEvent {
 
             }
         };
-
         StringBuilder bodyBuilder = new StringBuilder();
 
         String[] specificKeyRequirements = requiredKeys.containsKey(action)
-                ? (String[]) requiredKeys.get(action).toArray()
+                ? requiredKeys.get(action).toArray(new String[0])
                 : new String[0];
         if (specificKeyRequirements.length > 0) {
             Boolean containsKeys = Arrays.stream(specificKeyRequirements).allMatch(actionBodyMap::containsKey);
             if (containsKeys) {
                 actionBodyMap.forEach((key, value) -> {
-                    if (requiredKeys.containsKey(key)) {
-                        bodyBuilder.append("%s:%s".formatted(key, value)).append(";");
-                    }
+                    bodyBuilder.append("%s:%s".formatted(key, value)).append(";");
                 });
             }
+        }else{
+            throw new IllegalArgumentException("some of the arguments are missing");
         }
         this.actionBody = bodyBuilder.toString();
+        System.out.println("AAAAAAAAAAAAAa "+actionBody);
     }
 
     public User getOwner() {
