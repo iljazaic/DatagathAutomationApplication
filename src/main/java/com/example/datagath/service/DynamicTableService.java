@@ -320,14 +320,14 @@ public class DynamicTableService {
     public String exportTableToCsv(String tableName, Long ownerId) {
         CollectionTable collectionTable = ownerId != null && tableName != null ? findTable(ownerId, tableName) : null;
         if (collectionTable != null) {
-            String sql = "SELECT * FROM `" + collectionTable.getId() + "`";
+            String sql = "SELECT * FROM `" + collectionTable.getId() + "`";//heavy oh heavy
             Query query = entityManager.createNativeQuery(sql);
 
             @SuppressWarnings("unchecked")
             List<Object[]> results = query.getResultList();
             File folder = new File("../fileBufferStorage");
             if (!folder.exists()) {
-                folder.mkdirs(); // creates all nonexistent parent directories
+                folder.mkdirs(); // in case the directory no existo
             }
             try (FileWriter writer = new FileWriter("../fileBufferStorage/" + collectionTable.getId() + ".csv")) {
                 for (Object[] row : results) {

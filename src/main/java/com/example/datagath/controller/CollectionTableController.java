@@ -23,10 +23,13 @@ import com.example.datagath.service.UserService;
 import com.itextpdf.text.pdf.PdfStructTreeController.returnType;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import org.springframework.web.bind.annotation.CookieValue;
@@ -194,32 +197,36 @@ public class CollectionTableController {
         return response;
     }
 
-
-    //download to csv mapping
+    // download to csv mapping
     @GetMapping("/download/{tableName}")
-    public ResponseEntity<?> getMethodName(@PathVariable("tableName") String tableName,
-            @RequestParam(required = false) Map<String, String> allParams,
-            @CookieValue(value = "sessionToken", required = false) String token) throws IOException {
+    public StreamingResponseBody downloadCsv(
+            @PathVariable String tableName,
+            @CookieValue(value = "sessionToken", required = false) String token,
+            HttpServletResponse response) throws IOException {
+
         User user = token != null ? userService.validateSessionToken(token) : null;
-        if (user != null) {
-            String pathToFile = dynamicTableService.exportTableToCsv(tableName, user.getId());
-            File file = new File(pathToFile);
-            StreamingResponseBody stream = outputStream -> {
-                try (FileInputStream inputStream = new FileInputStream(file)) {
-                    inputStream.transferTo(outputStream);
-                } finally {
-                    // file.delete();
-                }
-            };
 
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
-                    .contentType(MediaType.parseMediaType("text/csv"))
-                    .body(stream);
-        } else
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).header(HttpHeaders.LOCATION, "/login")
-                    .body("No user speficified");
+        if (user == null) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("No user specified");
+            return null;
+        }
 
+        String pathToFile = dynamicTableService.exportTableToCsv(tableName, user.getId());
+        File file = new File(pathToFile);
+
+        // Set headers directly on response
+        response.setContentType("text/csv");
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=\"" + URLEncoder.encode(file.getName(), StandardCharsets.UTF_8) + "\"");
+
+        return outputStream -> {
+            try (FileInputStream inputStream = new FileInputStream(file)) {
+                inputStream.transferTo(outputStream);
+            } finally {
+                file.delete();
+            }
+        };
     }
 
 }
