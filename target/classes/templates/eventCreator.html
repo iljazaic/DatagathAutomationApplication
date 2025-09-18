@@ -54,7 +54,7 @@
                         <!--<option value="EMAIL">Draft and send email</option>-->
                         <option value="REPORT">Build and send a Report on a Collection Table dataset</option>
                         <option value="AI/LLM">Prompt AI/LLM and send response</option>
-                        <option value="VISUALISTION">Generate Visualisation of Collected Dataset and save/send</option>
+                        <option value="VISUALISATION">Generate Visualisation of Collected Dataset and save/send</option>
                     </select>
 
 
@@ -229,7 +229,7 @@
                 newElement("label", options, null, null, "Enter the address to send the results to")
                 newElement('input', options, 'sendAddress', 'Email or URL. Make sure the URL accepts inbund POST requests')
                 break;
-            case 'VISUALISTION':
+            case 'VISUALISATION':
                 newElement('label', options, null, null, "Select the dataset to visualise")
                 select = newElement('select', options, 'dataset', null, null);
                 datasets = await fetch("/tables/usertables", {

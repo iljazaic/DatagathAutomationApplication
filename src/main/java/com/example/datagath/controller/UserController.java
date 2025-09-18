@@ -97,6 +97,8 @@ public class UserController {
         }
     }
 
+    
+
     @GetMapping("/account")
     public String getAccountPage(@CookieValue(value = "sessionToken", required = false) String token, Model model) {
         User u = token != null ? validateSessionToken(token) : null;

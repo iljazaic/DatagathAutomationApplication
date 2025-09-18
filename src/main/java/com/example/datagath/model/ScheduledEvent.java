@@ -1,7 +1,9 @@
 package com.example.datagath.model;
 
+import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import jakarta.persistence.Entity;
@@ -57,42 +59,42 @@ public class ScheduledEvent {
         if (action == null) {
             return;
         }
-        
-        Map<String,String> requiredKeys = new HashMap<String,String>(){
+
+        // Map<String,String> requiredKeys = new HashMap<String,String>(){
+        // {
+        // put("PING", "sendAddress,pingAddress");
+        // put("AI/LLM", "model,prompt,sendAddress,apikey");
+        // put("REPORT","dataset,sendAddress");
+        // put("VISUALISATION","dataset,visualisation,sendAddress");
+        // }
+        // };
+
+        Map<String, List<String>> requiredKeys = new HashMap<String, List<String>>() {
             {
-                put("PING", "");
+                put("PING", Arrays.asList("sendAddress", "pingAddress"));
+                put("AI/LLM", Arrays.asList("sendAddress", "prompt", "apikey", "model"));
+                put("REPORT", Arrays.asList("sendAddress", "dataset"));
+                put("VISUALISATION", Arrays.asList("sendAddress", "dataset", "visualisationType"));
+
+            }
+        };
+
+        StringBuilder bodyBuilder = new StringBuilder();
+
+        String[] specificKeyRequirements = requiredKeys.containsKey(action)
+                ? (String[]) requiredKeys.get(action).toArray()
+                : new String[0];
+        if (specificKeyRequirements.length > 0) {
+            Boolean containsKeys = Arrays.stream(specificKeyRequirements).allMatch(actionBodyMap::containsKey);
+            if (containsKeys) {
+                actionBodyMap.forEach((key, value) -> {
+                    if (requiredKeys.containsKey(key)) {
+                        bodyBuilder.append("%s:%s".formatted(key, value)).append(";");
+                    }
+                });
             }
         }
-
-
-        String body = new String();
-        switch (action) {
-            case "PING":
-                //Boolean containsRequiredKeys = Arrays.stream(requiredKeys[0].split(",")).filter(p->actionBodyMap.containsKey(p)).toArray(String[]::new).length==requiredKeys[0].split(",").length;
-                Boolean containsKeys = Arrays.stream(requiredKeys.get(action).split(",")).allMatch(actionBodyMap::containsKey);
-                if (actionBodyMap.containsKey("sendAddress") && actionBodyMap.containsKey("pingAddress")) {
-                    body = "SEND_ADDRESS:%s;PING_ADDRESS:%s".formatted(actionBodyMap.get("sendAddress"),
-                            actionBodyMap.get("pingAddress"));
-                    this.actionBody = body;
-                }
-                break;
-            case "REPORT":
-                if (actionBodyMap.containsKey("sendAddress") && actionBodyMap.containsKey("dataset")) {
-                    body = "SEND_ADDRESS:%s;DATASET:%s".formatted(actionBodyMap.get("sendAddress"),
-                            actionBodyMap.get("dataset"));
-                    this.actionBody = body;
-                }
-                break;
-            case "AI/LLM":
-                if (actionBodyMap.containsKey("sendAddress") && actionBodyMap.containsKey("model"))&& {
-                    body = "SEND_ADDRESS:%s;DATASET:%s".formatted(actionBodyMap.get("sendAddress"),
-                            actionBodyMap.get("dataset"));
-                    this.actionBody = body;
-                }
-                break;
-            default:
-                break;
-        }
+        this.actionBody = bodyBuilder.toString();
     }
 
     public User getOwner() {
