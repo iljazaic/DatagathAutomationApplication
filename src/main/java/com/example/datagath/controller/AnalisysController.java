@@ -51,15 +51,31 @@ public class AnalisysController {
     }
 
     @GetMapping("/reports/create")
-    public String getMethodName(@CookieValue(required = false) String sessionToken, Model model) {
+    public String reportCreationPage(@CookieValue(required = false) String sessionToken, Model model) {
         User user = sessionToken != null ? userService.validateSessionToken(sessionToken) : null;
         if (user != null) {
 
-            List<CollectionTable> userTableList = tableRepository.findByOwnerId(user.getId());
+            //List<CollectionTable> userTableList = tableRepository.findByOwnerId(user.getId());
 
             // model.addAttribute("user", user);
             model.addAttribute("type", user);
             return "report";
+
+        } else {
+            return "redirect:/login";
+        }
+    }
+
+    @GetMapping("/visualisations/create")
+    public String visualisationCreationPage(@CookieValue(required = false) String sessionToken, Model model) {
+        User user = sessionToken != null ? userService.validateSessionToken(sessionToken) : null;
+        if (user != null) {
+
+            //List<CollectionTable> userTableList = tableRepository.findByOwnerId(user.getId());
+
+            // model.addAttribute("user", user);
+            model.addAttribute("type", user);
+            return "visualisation";
 
         } else {
             return "redirect:/login";
@@ -98,7 +114,7 @@ public class AnalisysController {
                     response.put("description", scheduledEvent.getDescription());
                     String action = scheduledEvent.getAction();
                     if (!action.equals("NONE")) {
-                        System.out.println("BBBBBB "+scheduledEvent.getActionBody());
+                        System.out.println("BBBBBB " + scheduledEvent.getActionBody());
                         for (String actionPart : scheduledEvent.getActionBody().split(";")) {
                             response.put(actionPart.split(":")[0], actionPart.split(":")[1]);
                         }

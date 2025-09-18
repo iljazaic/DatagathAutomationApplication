@@ -1,12 +1,6 @@
 package com.example.datagath.service;
 
 import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-
-import org.springframework.cglib.core.Local;
 
 import com.example.datagath.model.CollectionTable;
 import com.itextpdf.text.BaseColor;
